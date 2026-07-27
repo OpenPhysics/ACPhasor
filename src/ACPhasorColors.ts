@@ -95,6 +95,20 @@ const ACPhasorColors = {
     projector: "#1a1a1a",
   }),
 
+  // ── Circuit diagram ──────────────────────────────────────────────────────────
+
+  /** Wire / schematic-symbol stroke in the circuit diagram. Light on dark, dark on light. */
+  wireColorProperty: new ProfileColorProperty(ACPhasorNamespace, "wire", {
+    default: "#e0e0e0",
+    projector: "#333333",
+  }),
+
+  /** Moving charge carriers in the circuit diagram. Amber in both profiles for a "charge" read. */
+  chargeColorProperty: new ProfileColorProperty(ACPhasorNamespace, "charge", {
+    default: "#ffd54f",
+    projector: "#f9a825",
+  }),
+
   // ── Circuit-component colors (R, L, C) ───────────────────────────────────────
 
   /** Resistor (R) accent — used in icons and future component nodes. */

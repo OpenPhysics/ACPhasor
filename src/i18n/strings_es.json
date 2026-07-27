@@ -6,27 +6,65 @@
     "resonance": "Resonancia",
     "power": "Potencia"
   },
+  "labels": {
+    "resistor": "Resistencia",
+    "inductor": "Inductor",
+    "capacitor": "Condensador",
+    "resistance": "Resistencia",
+    "inductance": "Inductancia",
+    "capacitance": "Capacitancia",
+    "sourceVoltage": "Tensión de fuente",
+    "frequency": "Frecuencia",
+    "voltage": "Tensión",
+    "current": "Corriente",
+    "impedance": "Impedancia",
+    "reactance": "Reactancia",
+    "phase": "Fase",
+    "ohmsPattern": "{{value}} Ω",
+    "henriesPattern": "{{value}} H",
+    "faradsPattern": "{{value}} F",
+    "voltsPattern": "{{value}} V",
+    "hertzPattern": "{{value}} Hz",
+    "degreesPattern": "{{value}}°"
+  },
   "a11y": {
     "intro": {
       "screenSummary": {
         "playArea": "El área de juego muestra una fuente de CA conectada a un componente electromagnético — resistencia, inductor o condensador — y sus fasores de tensión y corriente.",
-        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "controlArea": "El área de control tiene controles para el tipo de componente, su valor, la tensión y la frecuencia de la fuente, la reproducción y un botón Restablecer todo.",
         "interactionHint": "Elige un componente y explora cómo su fasor se relaciona con la señal de CA."
       },
-      "currentDetails": "La pantalla de Introducción está en su estado inicial.",
+      "currentDetails": {
+        "resistor": "Hay una resistencia conectada. Su corriente está en fase con la tensión de la fuente.",
+        "inductor": "Hay un inductor conectado. Su corriente se retrasa 90 grados respecto a la tensión de la fuente.",
+        "capacitor": "Hay un condensador conectado. Su corriente se adelanta 90 grados a la tensión de la fuente."
+      },
       "controls": {
-        "exampleControl": "Control de ejemplo"
+        "component": "Componente del circuito",
+        "resistance": "Resistencia",
+        "inductance": "Inductancia",
+        "capacitance": "Capacitancia",
+        "sourceVoltage": "Amplitud de la tensión de fuente",
+        "frequency": "Frecuencia de la fuente"
       }
     },
     "seriesRlc": {
       "screenSummary": {
-        "playArea": "El área de juego muestra un circuito RLC en serie impulsado por una fuente de CA, con fasores de resistencia, inductor y condensador.",
-        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-        "interactionHint": "Ajusta R, L y C para ver cómo cambia el fasor de impedancia en serie."
+        "playArea": "El área de juego muestra un circuito RLC en serie impulsado por una fuente de CA, con los fasores de tensión de la resistencia, el inductor y el condensador cerrándose sobre el fasor de la fuente.",
+        "controlArea": "El área de control tiene controles para R, L y C, la tensión y la frecuencia de la fuente, y un botón Restablecer todo.",
+        "interactionHint": "Ajusta R, L y C para ver cómo cambian la impedancia en serie y el triángulo de tensiones."
       },
-      "currentDetails": "La pantalla RLC en serie está en su estado inicial.",
+      "currentDetails": {
+        "inductive": "El circuito es inductivo: la tensión de la fuente se adelanta a la corriente, por lo que la reactancia neta apunta hacia arriba.",
+        "capacitive": "El circuito es capacitivo: la tensión de la fuente se retrasa respecto a la corriente, por lo que la reactancia neta apunta hacia abajo.",
+        "resonant": "El circuito está en resonancia: las tensiones inductiva y capacitiva se cancelan y la corriente está en fase con la tensión de la fuente."
+      },
       "controls": {
-        "exampleControl": "Control de ejemplo"
+        "resistance": "Resistencia",
+        "inductance": "Inductancia",
+        "capacitance": "Capacitancia",
+        "sourceVoltage": "Amplitud de la tensión de fuente",
+        "frequency": "Frecuencia de la fuente"
       }
     },
     "resonance": {

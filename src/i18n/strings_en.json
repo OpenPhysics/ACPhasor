@@ -6,27 +6,65 @@
     "resonance": "Resonance",
     "power": "Power"
   },
+  "labels": {
+    "resistor": "Resistor",
+    "inductor": "Inductor",
+    "capacitor": "Capacitor",
+    "resistance": "Resistance",
+    "inductance": "Inductance",
+    "capacitance": "Capacitance",
+    "sourceVoltage": "Source voltage",
+    "frequency": "Frequency",
+    "voltage": "Voltage",
+    "current": "Current",
+    "impedance": "Impedance",
+    "reactance": "Reactance",
+    "phase": "Phase",
+    "ohmsPattern": "{{value}} Ω",
+    "henriesPattern": "{{value}} H",
+    "faradsPattern": "{{value}} F",
+    "voltsPattern": "{{value}} V",
+    "hertzPattern": "{{value}} Hz",
+    "degreesPattern": "{{value}}°"
+  },
   "a11y": {
     "intro": {
       "screenSummary": {
         "playArea": "The play area shows an AC source connected to one electromagnetic component — a resistor, inductor, or capacitor — and its voltage and current phasors.",
-        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "controlArea": "The control area has controls for the component type, its value, the source voltage and frequency, playback, and a Reset All button.",
         "interactionHint": "Choose a component and explore how its phasor relates to the AC drive."
       },
-      "currentDetails": "The Intro screen is in its initial state.",
+      "currentDetails": {
+        "resistor": "A resistor is connected. Its current is in phase with the source voltage.",
+        "inductor": "An inductor is connected. Its current lags the source voltage by 90 degrees.",
+        "capacitor": "A capacitor is connected. Its current leads the source voltage by 90 degrees."
+      },
       "controls": {
-        "exampleControl": "Example control"
+        "component": "Circuit component",
+        "resistance": "Resistance",
+        "inductance": "Inductance",
+        "capacitance": "Capacitance",
+        "sourceVoltage": "Source voltage amplitude",
+        "frequency": "Source frequency"
       }
     },
     "seriesRlc": {
       "screenSummary": {
-        "playArea": "The play area shows a series RLC circuit driven by an AC source, with resistor, inductor, and capacitor phasors.",
-        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-        "interactionHint": "Adjust R, L, and C to see how the series impedance phasor changes."
+        "playArea": "The play area shows a series RLC circuit driven by an AC source, with resistor, inductor, and capacitor voltage phasors closing back onto the source phasor.",
+        "controlArea": "The control area has controls for R, L, and C, the source voltage and frequency, and a Reset All button.",
+        "interactionHint": "Adjust R, L, and C to see how the series impedance and voltage triangle change."
       },
-      "currentDetails": "The Series RLC screen is in its initial state.",
+      "currentDetails": {
+        "inductive": "The circuit is inductive: the source voltage leads the current, so the net reactance points up.",
+        "capacitive": "The circuit is capacitive: the source voltage lags the current, so the net reactance points down.",
+        "resonant": "The circuit is at resonance: the inductive and capacitive voltages cancel and the current is in phase with the source voltage."
+      },
       "controls": {
-        "exampleControl": "Example control"
+        "resistance": "Resistance",
+        "inductance": "Inductance",
+        "capacitance": "Capacitance",
+        "sourceVoltage": "Source voltage amplitude",
+        "frequency": "Source frequency"
       }
     },
     "resonance": {

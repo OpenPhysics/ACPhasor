@@ -6,27 +6,65 @@
     "resonance": "Résonance",
     "power": "Puissance"
   },
+  "labels": {
+    "resistor": "Résistance",
+    "inductor": "Bobine",
+    "capacitor": "Condensateur",
+    "resistance": "Résistance",
+    "inductance": "Inductance",
+    "capacitance": "Capacité",
+    "sourceVoltage": "Tension de source",
+    "frequency": "Fréquence",
+    "voltage": "Tension",
+    "current": "Courant",
+    "impedance": "Impédance",
+    "reactance": "Réactance",
+    "phase": "Phase",
+    "ohmsPattern": "{{value}} Ω",
+    "henriesPattern": "{{value}} H",
+    "faradsPattern": "{{value}} F",
+    "voltsPattern": "{{value}} V",
+    "hertzPattern": "{{value}} Hz",
+    "degreesPattern": "{{value}}°"
+  },
   "a11y": {
     "intro": {
       "screenSummary": {
         "playArea": "La zone de jeu montre une source CA connectée à un composant électromagnétique — résistance, bobine ou condensateur — et ses phasors de tension et de courant.",
-        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
+        "controlArea": "La zone de contrôle comporte des réglages pour le type de composant, sa valeur, la tension et la fréquence de la source, la lecture, ainsi qu'un bouton Tout réinitialiser.",
         "interactionHint": "Choisissez un composant et explorez le lien entre son phasor et la source CA."
       },
-      "currentDetails": "L'écran Intro est dans son état initial.",
+      "currentDetails": {
+        "resistor": "Une résistance est connectée. Son courant est en phase avec la tension de source.",
+        "inductor": "Une bobine est connectée. Son courant est en retard de 90 degrés sur la tension de source.",
+        "capacitor": "Un condensateur est connecté. Son courant est en avance de 90 degrés sur la tension de source."
+      },
       "controls": {
-        "exampleControl": "Contrôle d'exemple"
+        "component": "Composant du circuit",
+        "resistance": "Résistance",
+        "inductance": "Inductance",
+        "capacitance": "Capacité",
+        "sourceVoltage": "Amplitude de la tension de source",
+        "frequency": "Fréquence de la source"
       }
     },
     "seriesRlc": {
       "screenSummary": {
-        "playArea": "La zone de jeu montre un circuit RLC série alimenté par une source CA, avec les phasors de la résistance, de la bobine et du condensateur.",
-        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-        "interactionHint": "Réglez R, L et C pour voir comment change le phasor d'impédance série."
+        "playArea": "La zone de jeu montre un circuit RLC série alimenté par une source CA, avec les phasors de tension de la résistance, de la bobine et du condensateur qui se referment sur le phasor de la source.",
+        "controlArea": "La zone de contrôle comporte des réglages pour R, L et C, la tension et la fréquence de la source, ainsi qu'un bouton Tout réinitialiser.",
+        "interactionHint": "Réglez R, L et C pour voir comment changent l'impédance série et le triangle des tensions."
       },
-      "currentDetails": "L'écran RLC série est dans son état initial.",
+      "currentDetails": {
+        "inductive": "Le circuit est inductif : la tension de source est en avance sur le courant, donc la réactance nette pointe vers le haut.",
+        "capacitive": "Le circuit est capacitif : la tension de source est en retard sur le courant, donc la réactance nette pointe vers le bas.",
+        "resonant": "Le circuit est à la résonance : les tensions inductive et capacitive s'annulent et le courant est en phase avec la tension de source."
+      },
       "controls": {
-        "exampleControl": "Contrôle d'exemple"
+        "resistance": "Résistance",
+        "inductance": "Inductance",
+        "capacitance": "Capacité",
+        "sourceVoltage": "Amplitude de la tension de source",
+        "frequency": "Fréquence de la source"
       }
     },
     "resonance": {

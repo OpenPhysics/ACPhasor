@@ -90,6 +90,11 @@ export class StringManager {
     };
   }
 
+  /** Shared control labels and value-format patterns used across screens. */
+  public getLabels() {
+    return stringProperties.labels;
+  }
+
   /** Accessibility strings for the Intro screen. */
   public getIntroA11yStrings() {
     return stringProperties.a11y.intro;

@@ -16,14 +16,21 @@ Forked from `TemplateSingleSim`.
 | `src/ACPhasorConstants.ts` | Named numeric constants (layout px, physics SI units) |
 | `src/ACPhasorNamespace.ts` | Namespace for color property names |
 | `src/i18n/StringManager.ts` | Singleton localized string accessor |
-| `src/intro/` | Screen 1 — single element: pick R/L/C, v(t)/i(t) beside a rotating phasor (stub) |
-| `src/series-rlc/` | Screen 2 — series RLC: live voltage + impedance triangle (stub) |
+| `src/intro/` | Screen 1 — single element: pick R/L/C, rotating V/I phasor clock + v(t)/i(t) scopes |
+| `src/series-rlc/` | Screen 2 — series RLC: normalized voltage-triangle phasor diagram + Z/reactance/phase readouts |
 | `src/resonance/` | Screen 3 — resonance & frequency sweep: adapts Resonance-sim driven-oscillator math (stub) |
 | `src/power/` | Screen 4 — power in AC circuits: p(t)=v·i, real/reactive power, power factor (stub) |
 | `src/common/ACPhasorScreenIcons.ts` | Home / nav icons for all four screens |
 | `src/common/SimPanel.ts` | Pre-themed `Panel` wrapper (uses `ACPhasorColors` automatically) |
 | `src/common/SimButtonOptions.ts` | Flat button-appearance option bundles + light-control-surface combo-box options |
 | `src/common/TimeModel.ts` | Composable play/pause + elapsed-time model for animated sims |
+| `src/common/model/Phasor.ts` | Immutable AC phasor value object (amplitude/phase over dot `Complex`) |
+| `src/common/model/Impedance.ts` | R/L/C frequency-domain impedances + series & resonance helpers |
+| `src/common/model/ACSourceModel.ts` | Composable sinusoidal-source model (amplitude, frequency, ω, voltage phasor) |
+| `src/common/view/PhasorNode.ts` | Arrow that tracks a `Property<Phasor>` on a `ModelViewTransform2` |
+| `src/common/view/PhasorDiagramNode.ts` | Complex-plane backdrop (axes/grid) that supplies the phasor transform |
+| `src/common/view/WaveformNode.ts` | Lightweight oscilloscope trace for one sinusoid v(t)=A·cos(ωt+φ) (optional autoScale) |
+| `src/common/view/SimNumberControl.ts` | Pre-themed `NumberControl` (dark-panel title + light value badge + units pattern) |
 | `scripts/generate-icons.ts` | PNG icons from `public/icons/icon.svg` |
 
 ## Common components
@@ -83,6 +90,27 @@ with `LIGHT_SURFACE_TEXT_FILL` (not `ACPhasorColors.textColorProperty`, which is
 `controlSurfaceTextColorProperty` — identical white/dark-text values in both default and
 projector profiles, so any component that must stay light regardless of theme (combo boxes,
 flat buttons, editable fields) keeps readable contrast automatically.
+
+### Phasor domain stack (`common/model` + `common/view`)
+
+The four screens share one physics vocabulary. Build screen models and views on
+these rather than re-deriving the complex math:
+
+- **`Phasor`** — immutable value object for A·cos(ωt+φ), backed by dot's `Complex`.
+  `phasor.times(z)` / `phasor.dividedBy(z)` apply Ohm's law in the frequency domain
+  (V = I·Z); `phasor.instantaneousValue(ω, t)` recovers the time-domain signal.
+  Expose phasors through a `Property<Phasor>` with `valueComparisonStrategy: "equalsFunction"`.
+- **`Impedance.ts`** — `resistorImpedance` / `inductorImpedance` / `capacitorImpedance`
+  (and `elementImpedance`, `seriesRlcImpedance`, `resonant{Angular}Frequency`) return
+  `Complex` values that feed straight into `Phasor.times`/`dividedBy`.
+- **`ACSourceModel`** — composable source: `amplitudeProperty`, `frequencyProperty`,
+  derived `angularFrequencyProperty` (2πf) and `voltagePhasorProperty`. Compose it into
+  a screen model (`public readonly source = new ACSourceModel()`), don't extend it.
+- **`PhasorDiagramNode`** builds the complex-plane transform; pass its
+  `modelViewTransform` to each **`PhasorNode`** you `addChild`. **`WaveformNode`** is an
+  imperative scope — call `setWaveform(A, ω, φ)` on change and `setCursorTime(t)` in `step`.
+
+Physics defaults and ranges (amplitude, frequency, R/L/C) live in `ACPhasorConstants.ts`.
 
 ## Accessibility
 
