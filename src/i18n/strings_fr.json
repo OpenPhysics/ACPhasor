@@ -1,0 +1,47 @@
+{
+  "title": "Phasor CA",
+  "screens": {
+    "intro": "Intro",
+    "seriesRlc": "RLC série",
+    "parallelRlc": "RLC parallèle"
+  },
+  "a11y": {
+    "intro": {
+      "screenSummary": {
+        "playArea": "La zone de jeu montre une source CA connectée à un composant électromagnétique — résistance, bobine ou condensateur — et ses phasors de tension et de courant.",
+        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
+        "interactionHint": "Choisissez un composant et explorez le lien entre son phasor et la source CA."
+      },
+      "currentDetails": "L'écran Intro est dans son état initial.",
+      "controls": {
+        "exampleControl": "Contrôle d'exemple"
+      }
+    },
+    "seriesRlc": {
+      "screenSummary": {
+        "playArea": "La zone de jeu montre un circuit RLC série alimenté par une source CA, avec les phasors de la résistance, de la bobine et du condensateur.",
+        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
+        "interactionHint": "Réglez R, L et C pour voir comment change le phasor d'impédance série."
+      },
+      "currentDetails": "L'écran RLC série est dans son état initial.",
+      "controls": {
+        "exampleControl": "Contrôle d'exemple"
+      }
+    },
+    "parallelRlc": {
+      "screenSummary": {
+        "playArea": "La zone de jeu montre un circuit RLC parallèle alimenté par une source CA, avec les phasors de courant de branche.",
+        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
+        "interactionHint": "Réglez R, L et C pour voir comment changent les phasors d'admittance parallèle."
+      },
+      "currentDetails": "L'écran RLC parallèle est dans son état initial.",
+      "controls": {
+        "exampleControl": "Contrôle d'exemple"
+      }
+    }
+  },
+  "preferences": {
+    "title": "Simulation",
+    "exampleToggle": "Exemple de bascule"
+  }
+}

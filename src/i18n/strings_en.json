@@ -1,0 +1,47 @@
+{
+  "title": "AC Phasor",
+  "screens": {
+    "intro": "Intro",
+    "seriesRlc": "Series RLC",
+    "parallelRlc": "Parallel RLC"
+  },
+  "a11y": {
+    "intro": {
+      "screenSummary": {
+        "playArea": "The play area shows an AC source connected to one electromagnetic component — a resistor, inductor, or capacitor — and its voltage and current phasors.",
+        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "interactionHint": "Choose a component and explore how its phasor relates to the AC drive."
+      },
+      "currentDetails": "The Intro screen is in its initial state.",
+      "controls": {
+        "exampleControl": "Example control"
+      }
+    },
+    "seriesRlc": {
+      "screenSummary": {
+        "playArea": "The play area shows a series RLC circuit driven by an AC source, with resistor, inductor, and capacitor phasors.",
+        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "interactionHint": "Adjust R, L, and C to see how the series impedance phasor changes."
+      },
+      "currentDetails": "The Series RLC screen is in its initial state.",
+      "controls": {
+        "exampleControl": "Example control"
+      }
+    },
+    "parallelRlc": {
+      "screenSummary": {
+        "playArea": "The play area shows a parallel RLC circuit driven by an AC source, with branch current phasors.",
+        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "interactionHint": "Adjust R, L, and C to see how the parallel admittance phasors change."
+      },
+      "currentDetails": "The Parallel RLC screen is in its initial state.",
+      "controls": {
+        "exampleControl": "Example control"
+      }
+    }
+  },
+  "preferences": {
+    "title": "Simulation",
+    "exampleToggle": "Example Toggle"
+  }
+}

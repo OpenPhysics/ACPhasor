@@ -1,0 +1,47 @@
+{
+  "title": "Fasor CA",
+  "screens": {
+    "intro": "Introducción",
+    "seriesRlc": "RLC en serie",
+    "parallelRlc": "RLC en paralelo"
+  },
+  "a11y": {
+    "intro": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra una fuente de CA conectada a un componente electromagnético — resistencia, inductor o condensador — y sus fasores de tensión y corriente.",
+        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "interactionHint": "Elige un componente y explora cómo su fasor se relaciona con la señal de CA."
+      },
+      "currentDetails": "La pantalla de Introducción está en su estado inicial.",
+      "controls": {
+        "exampleControl": "Control de ejemplo"
+      }
+    },
+    "seriesRlc": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra un circuito RLC en serie impulsado por una fuente de CA, con fasores de resistencia, inductor y condensador.",
+        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "interactionHint": "Ajusta R, L y C para ver cómo cambia el fasor de impedancia en serie."
+      },
+      "currentDetails": "La pantalla RLC en serie está en su estado inicial.",
+      "controls": {
+        "exampleControl": "Control de ejemplo"
+      }
+    },
+    "parallelRlc": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra un circuito RLC en paralelo impulsado por una fuente de CA, con fasores de corriente de rama.",
+        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "interactionHint": "Ajusta R, L y C para ver cómo cambian los fasores de admitancia en paralelo."
+      },
+      "currentDetails": "La pantalla RLC en paralelo está en su estado inicial.",
+      "controls": {
+        "exampleControl": "Control de ejemplo"
+      }
+    }
+  },
+  "preferences": {
+    "title": "Simulación",
+    "exampleToggle": "Ejemplo de alternancia"
+  }
+}
