@@ -3,7 +3,8 @@
   "screens": {
     "intro": "Intro",
     "seriesRlc": "Series RLC",
-    "parallelRlc": "Parallel RLC"
+    "resonance": "Resonance",
+    "power": "Power"
   },
   "a11y": {
     "intro": {
@@ -28,13 +29,24 @@
         "exampleControl": "Example control"
       }
     },
-    "parallelRlc": {
+    "resonance": {
       "screenSummary": {
-        "playArea": "The play area shows a parallel RLC circuit driven by an AC source, with branch current phasors.",
+        "playArea": "The play area shows the series RLC circuit swept across driving frequency, with the phase triangle alongside impedance-versus-frequency and current-versus-frequency curves.",
         "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-        "interactionHint": "Adjust R, L, and C to see how the parallel admittance phasors change."
+        "interactionHint": "Sweep the driving frequency to find resonance, where the reactances cancel and the phase angle goes to zero."
       },
-      "currentDetails": "The Parallel RLC screen is in its initial state.",
+      "currentDetails": "The Resonance screen is in its initial state.",
+      "controls": {
+        "exampleControl": "Example control"
+      }
+    },
+    "power": {
+      "screenSummary": {
+        "playArea": "The play area shows the instantaneous power over a cycle, with the average real power and the oscillating reactive component shaded separately and a power-factor readout.",
+        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "interactionHint": "Adjust the load to see how the power factor changes and how a reactive load delivers zero net energy."
+      },
+      "currentDetails": "The Power screen is in its initial state.",
       "controls": {
         "exampleControl": "Example control"
       }

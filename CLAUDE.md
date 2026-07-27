@@ -4,8 +4,9 @@ Sim-specific context for AI assistants. General SceneryStack guidance: [OpenPhys
 
 ## Project
 
-AC phasor simulation (framework): electromagnetic components R, L, and C with three
-screens — Intro, Series RLC, and Parallel RLC. Forked from `TemplateSingleSim`.
+AC phasor simulation (framework): electromagnetic components R, L, and C with four
+screens — Intro (single element), Series RLC, Resonance (frequency sweep), and Power.
+Forked from `TemplateSingleSim`.
 
 ## Key files
 
@@ -15,10 +16,11 @@ screens — Intro, Series RLC, and Parallel RLC. Forked from `TemplateSingleSim`
 | `src/ACPhasorConstants.ts` | Named numeric constants (layout px, physics SI units) |
 | `src/ACPhasorNamespace.ts` | Namespace for color property names |
 | `src/i18n/StringManager.ts` | Singleton localized string accessor |
-| `src/intro/` | Intro screen — single component + phasor (stub) |
-| `src/series-rlc/` | Series RLC screen (stub) |
-| `src/parallel-rlc/` | Parallel RLC screen (stub) |
-| `src/common/ACPhasorScreenIcons.ts` | Home / nav icons for all three screens |
+| `src/intro/` | Screen 1 — single element: pick R/L/C, v(t)/i(t) beside a rotating phasor (stub) |
+| `src/series-rlc/` | Screen 2 — series RLC: live voltage + impedance triangle (stub) |
+| `src/resonance/` | Screen 3 — resonance & frequency sweep: adapts Resonance-sim driven-oscillator math (stub) |
+| `src/power/` | Screen 4 — power in AC circuits: p(t)=v·i, real/reactive power, power factor (stub) |
+| `src/common/ACPhasorScreenIcons.ts` | Home / nav icons for all four screens |
 | `src/common/SimPanel.ts` | Pre-themed `Panel` wrapper (uses `ACPhasorColors` automatically) |
 | `src/common/SimButtonOptions.ts` | Flat button-appearance option bundles + light-control-surface combo-box options |
 | `src/common/TimeModel.ts` | Composable play/pause + elapsed-time model for animated sims |

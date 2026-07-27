@@ -79,12 +79,14 @@ export class StringManager {
   public getScreenNames(): {
     readonly introStringProperty: ReadOnlyProperty<string>;
     readonly seriesRlcStringProperty: ReadOnlyProperty<string>;
-    readonly parallelRlcStringProperty: ReadOnlyProperty<string>;
+    readonly resonanceStringProperty: ReadOnlyProperty<string>;
+    readonly powerStringProperty: ReadOnlyProperty<string>;
   } {
     return {
       introStringProperty: stringProperties.screens.introStringProperty,
       seriesRlcStringProperty: stringProperties.screens.seriesRlcStringProperty,
-      parallelRlcStringProperty: stringProperties.screens.parallelRlcStringProperty,
+      resonanceStringProperty: stringProperties.screens.resonanceStringProperty,
+      powerStringProperty: stringProperties.screens.powerStringProperty,
     };
   }
 
@@ -98,9 +100,14 @@ export class StringManager {
     return stringProperties.a11y.seriesRlc;
   }
 
-  /** Accessibility strings for the Parallel RLC screen. */
-  public getParallelRlcA11yStrings() {
-    return stringProperties.a11y.parallelRlc;
+  /** Accessibility strings for the Resonance & frequency-sweep screen. */
+  public getResonanceA11yStrings() {
+    return stringProperties.a11y.resonance;
+  }
+
+  /** Accessibility strings for the Power-in-AC-circuits screen. */
+  public getPowerA11yStrings() {
+    return stringProperties.a11y.power;
   }
 
   /**

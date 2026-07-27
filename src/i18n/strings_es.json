@@ -3,7 +3,8 @@
   "screens": {
     "intro": "Introducción",
     "seriesRlc": "RLC en serie",
-    "parallelRlc": "RLC en paralelo"
+    "resonance": "Resonancia",
+    "power": "Potencia"
   },
   "a11y": {
     "intro": {
@@ -28,13 +29,24 @@
         "exampleControl": "Control de ejemplo"
       }
     },
-    "parallelRlc": {
+    "resonance": {
       "screenSummary": {
-        "playArea": "El área de juego muestra un circuito RLC en paralelo impulsado por una fuente de CA, con fasores de corriente de rama.",
+        "playArea": "El área de juego muestra el circuito RLC en serie barrido en frecuencia de excitación, con el triángulo de fase junto a las curvas de impedancia y de corriente en función de la frecuencia.",
         "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-        "interactionHint": "Ajusta R, L y C para ver cómo cambian los fasores de admitancia en paralelo."
+        "interactionHint": "Barre la frecuencia de excitación para encontrar la resonancia, donde las reactancias se cancelan y el ángulo de fase se anula."
       },
-      "currentDetails": "La pantalla RLC en paralelo está en su estado inicial.",
+      "currentDetails": "La pantalla de Resonancia está en su estado inicial.",
+      "controls": {
+        "exampleControl": "Control de ejemplo"
+      }
+    },
+    "power": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra la potencia instantánea a lo largo de un ciclo, con la potencia activa media y la componente reactiva oscilante sombreadas por separado y una lectura del factor de potencia.",
+        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "interactionHint": "Ajusta la carga para ver cómo cambia el factor de potencia y cómo una carga reactiva no entrega energía neta."
+      },
+      "currentDetails": "La pantalla de Potencia está en su estado inicial.",
       "controls": {
         "exampleControl": "Control de ejemplo"
       }

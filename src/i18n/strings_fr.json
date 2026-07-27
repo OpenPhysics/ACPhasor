@@ -3,7 +3,8 @@
   "screens": {
     "intro": "Intro",
     "seriesRlc": "RLC série",
-    "parallelRlc": "RLC parallèle"
+    "resonance": "Résonance",
+    "power": "Puissance"
   },
   "a11y": {
     "intro": {
@@ -28,13 +29,24 @@
         "exampleControl": "Contrôle d'exemple"
       }
     },
-    "parallelRlc": {
+    "resonance": {
       "screenSummary": {
-        "playArea": "La zone de jeu montre un circuit RLC parallèle alimenté par une source CA, avec les phasors de courant de branche.",
+        "playArea": "La zone de jeu montre le circuit RLC série balayé en fréquence d'excitation, avec le triangle de phase, ainsi que les courbes d'impédance et de courant en fonction de la fréquence.",
         "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-        "interactionHint": "Réglez R, L et C pour voir comment changent les phasors d'admittance parallèle."
+        "interactionHint": "Balayez la fréquence d'excitation pour trouver la résonance, où les réactances s'annulent et l'angle de phase s'annule."
       },
-      "currentDetails": "L'écran RLC parallèle est dans son état initial.",
+      "currentDetails": "L'écran Résonance est dans son état initial.",
+      "controls": {
+        "exampleControl": "Contrôle d'exemple"
+      }
+    },
+    "power": {
+      "screenSummary": {
+        "playArea": "La zone de jeu montre la puissance instantanée sur un cycle, avec la puissance active moyenne et la composante réactive oscillante ombrées séparément et un affichage du facteur de puissance.",
+        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
+        "interactionHint": "Réglez la charge pour voir comment change le facteur de puissance et comment une charge réactive ne fournit aucune énergie nette."
+      },
+      "currentDetails": "L'écran Puissance est dans son état initial.",
       "controls": {
         "exampleControl": "Contrôle d'exemple"
       }

@@ -2,7 +2,7 @@
 
 Framework scaffold for an AC phasor simulation with resistor (R), inductor (L), and
 capacitor (C). Physics and interactive UI are still TODO; this document describes the
-three-screen shell.
+four-screen shell.
 
 ## Architecture Overview
 
@@ -11,15 +11,18 @@ main.ts
   ├─ IntroScreen              (single component + phasor)
   │    ├─ IntroModel
   │    └─ IntroScreenView
-  ├─ SeriesRlcScreen          (series RLC + impedance phasors)
+  ├─ SeriesRlcScreen          (series RLC + voltage / impedance triangle)
   │    ├─ SeriesRlcModel
   │    └─ SeriesRlcScreenView
-  └─ ParallelRlcScreen        (parallel RLC + admittance / current phasors)
-       ├─ ParallelRlcModel
-       └─ ParallelRlcScreenView
+  ├─ ResonanceScreen          (frequency sweep + resonance-peak curves)
+  │    ├─ ResonanceModel
+  │    └─ ResonanceScreenView
+  └─ PowerScreen              (p(t) = v·i, real/reactive power, power factor)
+       ├─ PowerModel
+       └─ PowerScreenView
 
 src/common/
-  ├─ ACPhasorScreenIcons.ts   home / nav icons for all three screens
+  ├─ ACPhasorScreenIcons.ts   home / nav icons for all four screens
   ├─ SimPanel.ts              pre-themed panel (uses ACPhasorColors)
   ├─ SimButtonOptions.ts      flat button / combo-box option bundles
   └─ TimeModel.ts             composable play/pause + elapsed time
@@ -37,9 +40,10 @@ physics; the model never imports scenery.
 
 | Screen | Purpose |
 |---|---|
-| Intro | Pick R, L, or C; show AC drive and that component's V/I phasor |
-| Series RLC | Series combination; impedance phasor sum |
-| Parallel RLC | Parallel combination; branch-current / admittance phasors |
+| Intro | Pick R, L, or C; show AC drive and that component's V/I phasor, with time-domain v(t)/i(t) beside the rotating phasor |
+| Series RLC | Series combination; live voltage triangle (V_R, net reactive V, resultant V) paired with the geometrically identical impedance triangle |
+| Resonance | Same RLC circuit swept in frequency; triangle collapses flat at resonance alongside impedance- and current-vs-frequency curves (reuses driven-oscillator math from the Resonance sim) |
+| Power | p(t) = v(t)·i(t) over a cycle; average real power vs. oscillating reactive component shaded separately, with a cos φ power-factor readout |
 
 ## Next steps
 

@@ -24,9 +24,10 @@ import { Tandem } from "scenerystack/tandem";
 import ACPhasorColors from "./ACPhasorColors.js";
 import { StringManager } from "./i18n/StringManager.js";
 import { IntroScreen } from "./intro/IntroScreen.js";
-import { ParallelRlcScreen } from "./parallel-rlc/ParallelRlcScreen.js";
+import { PowerScreen } from "./power/PowerScreen.js";
 import { ACPhasorPreferencesModel } from "./preferences/ACPhasorPreferencesModel.js";
 import { ACPhasorPreferencesNode } from "./preferences/ACPhasorPreferencesNode.js";
+import { ResonanceScreen } from "./resonance/ResonanceScreen.js";
 import { SeriesRlcScreen } from "./series-rlc/SeriesRlcScreen.js";
 
 onReadyToLaunch(() => {
@@ -47,9 +48,14 @@ onReadyToLaunch(() => {
       tandem: Tandem.ROOT.createTandem("seriesRlcScreen"),
       backgroundColorProperty: ACPhasorColors.backgroundColorProperty,
     }),
-    new ParallelRlcScreen({
-      name: screenNames.parallelRlcStringProperty,
-      tandem: Tandem.ROOT.createTandem("parallelRlcScreen"),
+    new ResonanceScreen({
+      name: screenNames.resonanceStringProperty,
+      tandem: Tandem.ROOT.createTandem("resonanceScreen"),
+      backgroundColorProperty: ACPhasorColors.backgroundColorProperty,
+    }),
+    new PowerScreen({
+      name: screenNames.powerStringProperty,
+      tandem: Tandem.ROOT.createTandem("powerScreen"),
       backgroundColorProperty: ACPhasorColors.backgroundColorProperty,
     }),
   ];

@@ -4,9 +4,10 @@
  * Programmatic home-screen / navigation-bar icons for each AC Phasor screen.
  * Drawn on the standard PhET 548 × 373 canvas using ACPhasorColors.
  *
- *   Intro         — single component (resistor zigzag)
- *   Series RLC    — three components in a horizontal chain
- *   Parallel RLC  — three components stacked between shared rails
+ *   Intro       — single component (resistor zigzag)
+ *   Series RLC  — three components in a horizontal chain
+ *   Resonance   — a sharp resonance-peak curve
+ *   Power       — an instantaneous-power p(t) waveform with shaded lobes
  */
 import { Shape } from "scenerystack/kite";
 import { Node, Path, Rectangle } from "scenerystack/scenery";
@@ -108,35 +109,101 @@ export function createSeriesRlcIcon(): ScreenIcon {
   );
 }
 
-export function createParallelRlcIcon(): ScreenIcon {
-  const leftX = 160;
-  const rightX = 388;
-  const topY = 90;
-  const botY = 283;
-  const rails = new Path(
-    new Shape()
-      .moveTo(leftX, topY)
-      .lineTo(rightX, topY)
-      .moveTo(leftX, botY)
-      .lineTo(rightX, botY)
-      .moveTo(leftX, topY)
-      .lineTo(leftX, botY)
-      .moveTo(rightX, topY)
-      .lineTo(rightX, botY),
-    {
-      stroke: ACPhasorColors.accentColorProperty,
-      lineWidth: 4,
-    },
-  );
-  return iconFrom(
-    new Node({
-      children: [
-        background(),
-        rails,
-        resistorPath(W / 2, 130, 140),
-        inductorPath(W / 2, 186, 140),
-        capacitorNode(W / 2, 250),
-      ],
-    }),
-  );
+/** Resonance-peak curve (current vs. frequency) with a marked baseline. */
+export function createResonanceIcon(): ScreenIcon {
+  const left = 60;
+  const right = W - 60;
+  const baseY = 300;
+  const peakX = W / 2;
+  const peakY = 80;
+
+  // Axes.
+  const axes = new Path(new Shape().moveTo(left, 60).lineTo(left, baseY).lineTo(right, baseY), {
+    stroke: ACPhasorColors.textColorProperty,
+    lineWidth: 4,
+  });
+
+  // A sharp Lorentzian-style resonance peak sampled across the frequency axis.
+  const curveShape = new Shape();
+  const gamma = 46; // half-width controlling sharpness
+  const span = right - left;
+  const samples = 80;
+  for (let i = 0; i <= samples; i++) {
+    const x = left + (span * i) / samples;
+    const d = (x - peakX) / gamma;
+    const amp = 1 / (1 + d * d);
+    const y = baseY - amp * (baseY - peakY);
+    if (i === 0) {
+      curveShape.moveTo(x, y);
+    } else {
+      curveShape.lineTo(x, y);
+    }
+  }
+  const curve = new Path(curveShape, {
+    stroke: ACPhasorColors.accentColorProperty,
+    lineWidth: 8,
+    lineJoin: "round",
+    lineCap: "round",
+  });
+
+  // Dashed marker at the resonance frequency.
+  const marker = new Path(new Shape().moveTo(peakX, peakY).lineTo(peakX, baseY), {
+    stroke: ACPhasorColors.inductorColorProperty,
+    lineWidth: 3,
+    lineDash: [10, 8],
+  });
+
+  return iconFrom(new Node({ children: [background(), axes, marker, curve] }));
+}
+
+/** Instantaneous-power p(t) = v·i waveform with its positive lobes shaded. */
+export function createPowerIcon(): ScreenIcon {
+  const left = 60;
+  const right = W - 60;
+  const midY = H / 2;
+  const amp = 110;
+  const offset = 30; // p(t) average is shifted above zero for a typical load
+  const span = right - left;
+  const samples = 96;
+  const cycles = 2;
+
+  // Axis at the p = 0 line.
+  const axis = new Path(new Shape().moveTo(left, midY).lineTo(right, midY), {
+    stroke: ACPhasorColors.textColorProperty,
+    lineWidth: 4,
+  });
+
+  // p(t) ∝ offset + cos(2ωt): sample once, reuse for the fill and the stroke.
+  const points: Array<{ x: number; y: number }> = [];
+  for (let i = 0; i <= samples; i++) {
+    const x = left + (span * i) / samples;
+    const phase = (cycles * 2 * Math.PI * i) / samples;
+    const y = midY - offset - amp * Math.cos(phase);
+    points.push({ x, y });
+  }
+
+  // Shaded region between the curve and the zero line.
+  const fillShape = new Shape().moveTo(left, midY);
+  for (const p of points) {
+    fillShape.lineTo(p.x, p.y);
+  }
+  fillShape.lineTo(right, midY).close();
+  const fill = new Path(fillShape, { fill: ACPhasorColors.capacitorColorProperty });
+
+  const curveShape = new Shape();
+  points.forEach((p, i) => {
+    if (i === 0) {
+      curveShape.moveTo(p.x, p.y);
+    } else {
+      curveShape.lineTo(p.x, p.y);
+    }
+  });
+  const curve = new Path(curveShape, {
+    stroke: ACPhasorColors.accentColorProperty,
+    lineWidth: 8,
+    lineJoin: "round",
+    lineCap: "round",
+  });
+
+  return iconFrom(new Node({ children: [background(), fill, axis, curve] }));
 }

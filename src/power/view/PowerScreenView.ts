@@ -1,7 +1,7 @@
 /**
- * ParallelRlcScreenView.ts
+ * PowerScreenView.ts
  *
- * Framework view for the Parallel RLC screen. Placeholder content only.
+ * Framework view for the Power-in-AC-circuits screen. Placeholder content only.
  */
 import { Node, Rectangle, Text } from "scenerystack/scenery";
 import { ResetAllButton } from "scenerystack/scenery-phet";
@@ -11,13 +11,13 @@ import ACPhasorColors from "../../ACPhasorColors.js";
 import { SCREEN_VIEW_MARGIN } from "../../ACPhasorConstants.js";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/SimButtonOptions.js";
 import { StringManager } from "../../i18n/StringManager.js";
-import type { ParallelRlcModel } from "../model/ParallelRlcModel.js";
-import { ParallelRlcScreenSummaryContent } from "./ParallelRlcScreenSummaryContent.js";
+import type { PowerModel } from "../model/PowerModel.js";
+import { PowerScreenSummaryContent } from "./PowerScreenSummaryContent.js";
 
-export class ParallelRlcScreenView extends ScreenView {
-  public constructor(model: ParallelRlcModel, options?: ScreenViewOptions) {
+export class PowerScreenView extends ScreenView {
+  public constructor(model: PowerModel, options?: ScreenViewOptions) {
     super({
-      screenSummaryContent: new ParallelRlcScreenSummaryContent(model),
+      screenSummaryContent: new PowerScreenSummaryContent(model),
       ...options,
     });
 
@@ -26,7 +26,7 @@ export class ParallelRlcScreenView extends ScreenView {
     });
     this.addChild(backgroundRect);
 
-    const screenName = StringManager.getInstance().getScreenNames().parallelRlcStringProperty;
+    const screenName = StringManager.getInstance().getScreenNames().powerStringProperty;
     const placeholderText = new Text(screenName, {
       font: "bold 36px sans-serif",
       fill: ACPhasorColors.textColorProperty,
@@ -53,10 +53,10 @@ export class ParallelRlcScreenView extends ScreenView {
   }
 
   public reset(): void {
-    // TODO: reset view-side Parallel RLC state
+    // TODO: reset view-side Power state
   }
 
   public override step(_dt: number): void {
-    // TODO: Parallel RLC view animation
+    // TODO: Power view animation
   }
 }
