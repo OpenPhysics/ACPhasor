@@ -159,10 +159,13 @@ state and add `accessibleName`s to every interactive node. Full convention and c
 
 ## Compliance carve-outs
 
-A clean fork of this template rarely needs compliance carve-outs — root `ACPhasorConstants.ts`,
-`*Colors.ts`, `*Namespace.ts`, standard screen layout, and full a11y wiring pass Baton's
-compliance check out of the box. Document carve-outs in the forked sim's `CLAUDE.md` only when
-you introduce a deliberate deviation (nested constants, hardcoded interaction fills, etc.).
+Baton's compliance check passes. One documented deviation:
+
+- **IEC resistor band colors in `src/common/view/ResistorNode.ts`** (`BAND_COLORS`,
+  `GOLD_BAND_COLOR`, `SILVER_BAND_COLOR`) are fixed standard codes, not themeable UI chrome.
+  Putting them in `*Colors.ts` would imply projector remapping that would misrepresent the
+  physical color code. The compliance script flags them as possible hardcoded colors; that
+  warning is expected.
 
 ## Testing
 
