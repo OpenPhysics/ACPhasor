@@ -29,7 +29,7 @@ Forked from `TemplateSingleSim`.
 | `src/common/model/ACSourceModel.ts` | Composable sinusoidal-source model (amplitude, frequency, ω, voltage phasor) |
 | `src/common/view/PhasorNode.ts` | Arrow that tracks a `Property<Phasor>` on a `ModelViewTransform2` |
 | `src/common/view/PhasorDiagramNode.ts` | Complex-plane backdrop (axes/grid) that supplies the phasor transform |
-| `src/common/view/WaveformNode.ts` | Lightweight oscilloscope trace for one sinusoid v(t)=A·cos(ωt+φ) (optional autoScale) |
+| `src/common/view/WaveformNode.ts` | Bamboo oscilloscope for one sinusoid v(t)=A·cos(ωt+φ): labelled axes, frozen footprint, quantized autoScale |
 | `src/common/view/SimNumberControl.ts` | Pre-themed `NumberControl` (dark-panel title + light value badge + units pattern) |
 | `src/common/view/SimReadout.ts` | One "label + value badge" row for info panels |
 | `src/common/view/CircuitDiagramNode.ts` | Pictorial single-loop circuit: wire, source, element slots, flowing charge |
@@ -116,6 +116,20 @@ these rather than re-deriving the complex math:
 - **`PhasorDiagramNode`** builds the complex-plane transform; pass its
   `modelViewTransform` to each **`PhasorNode`** you `addChild`. **`WaveformNode`** is an
   imperative scope — call `setWaveform(A, ω, φ)` on change and `setCursorTime(t)` in `step`.
+
+`WaveformNode` is a bamboo chart with two rules that keep a scope readable while the
+physics moves under it, and both should be preserved in new scopes:
+
+- **Its layout bounds are frozen at construction** and the trace is clipped to the chart
+  rectangle, so a changing amplitude or tick label can never move the node — nor anything
+  laid out below it. Stack scopes freely in a `VBox`.
+- **`autoScale` snaps the full scale to a 1–2–5 sequence** rather than tracking the
+  amplitude, so the axis holds still through small changes and always reads as round
+  numbers. Prefer a fixed `maxAmplitude` where the signal has a known bound (source
+  voltage); reserve `autoScale` for signals that span decades (current through a reactance).
+
+Captions carry the scale: `label` (top-left), the peak value with `units` (top-right), and
+time ticks that only the bottom scope of a stack labels (`showTimeAxisLabels: false` above).
 
 Physics defaults and ranges (amplitude, frequency, R/L/C) live in `ACPhasorConstants.ts`.
 

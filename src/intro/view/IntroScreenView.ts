@@ -121,6 +121,8 @@ export class IntroScreenView extends ScreenView {
     diagram.left = SCREEN_VIEW_MARGIN + 20;
 
     // ── Oscilloscope traces ─────────────────────────────────────────────────
+    // The voltage scope keeps a fixed vertical scale (the source can never
+    // exceed it), so the trace's height reads directly as a voltage.
     this.voltageScope = new WaveformNode({
       viewWidth: SCOPE_WIDTH,
       viewHeight: SCOPE_HEIGHT,
@@ -128,6 +130,9 @@ export class IntroScreenView extends ScreenView {
       maxAmplitude: AC_AMPLITUDE_RANGE_V.max,
       stroke: ACPhasorColors.textColorProperty,
       showCursor: true,
+      label: "v(t)",
+      units: "V",
+      showTimeAxisLabels: false, // shared with the current scope directly below
     });
     this.currentScope = new WaveformNode({
       viewWidth: SCOPE_WIDTH,
@@ -136,18 +141,14 @@ export class IntroScreenView extends ScreenView {
       autoScale: true, // current amplitude varies widely with |Z|
       stroke: currentColorProperty,
       showCursor: true,
+      label: "i(t)",
+      units: "A",
     });
 
-    const scopeFont = new PhetFont(13);
     const scopeStack = new VBox({
       align: "left",
-      spacing: 4,
-      children: [
-        new Text("v(t)", { font: scopeFont, fill: ACPhasorColors.textColorProperty }),
-        this.voltageScope,
-        new Text("i(t)", { font: scopeFont, fill: currentColorProperty }),
-        this.currentScope,
-      ],
+      spacing: 12,
+      children: [this.voltageScope, this.currentScope],
     });
     scopeStack.left = SCREEN_VIEW_MARGIN + 20;
 
