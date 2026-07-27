@@ -62,6 +62,22 @@ export const CAPACITANCE_DEFAULT_F = 1;
 /** Selectable capacitance range (F). */
 export const CAPACITANCE_RANGE_F = new Range(0.1, 10);
 
+// ── Pictorial circuit diagram ─────────────────────────────────────────────────
+
+/**
+ * Plate charge q = C·v (coulombs) at which a pictorial capacitor shows the
+ * maximum number of charge symbols on its plates. Chosen so the defaults
+ * (C = 1 F driven at 5 V peak) fill the plates about halfway at the peak of
+ * each cycle, leaving visible headroom in both directions.
+ */
+export const CAPACITOR_SATURATION_CHARGE_C = 10;
+
+/** Loop size of the circuit diagram on the Intro screen (px). */
+export const INTRO_CIRCUIT_SIZE = { width: 360, height: 175 };
+
+/** Loop size of the circuit diagram on the Series RLC screen (px). */
+export const SERIES_CIRCUIT_SIZE = { width: 520, height: 150 };
+
 ACPhasorNamespace.register("ACPhasorConstants", {
   SCREEN_VIEW_MARGIN,
   PANEL_CORNER_RADIUS,
@@ -75,4 +91,7 @@ ACPhasorNamespace.register("ACPhasorConstants", {
   INDUCTANCE_RANGE_H,
   CAPACITANCE_DEFAULT_F,
   CAPACITANCE_RANGE_F,
+  CAPACITOR_SATURATION_CHARGE_C,
+  INTRO_CIRCUIT_SIZE,
+  SERIES_CIRCUIT_SIZE,
 });

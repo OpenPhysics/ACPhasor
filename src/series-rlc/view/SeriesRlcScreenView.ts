@@ -7,10 +7,10 @@
  * the source phasor. A readout panel reports |Z|, net reactance, and phase, and a
  * control panel sets R, L, C, source voltage, and frequency.
  */
-import { DerivedProperty, Multilink, Property, type TReadOnlyProperty } from "scenerystack/axon";
+import { DerivedProperty, Multilink, Property } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
-import { HBox, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
-import { NumberDisplay, PhetFont, ResetAllButton } from "scenerystack/scenery-phet";
+import { Node, Rectangle, VBox } from "scenerystack/scenery";
+import { ResetAllButton } from "scenerystack/scenery-phet";
 import type { ScreenViewOptions } from "scenerystack/sim";
 import { ScreenView } from "scenerystack/sim";
 import ACPhasorColors from "../../ACPhasorColors.js";
@@ -21,29 +21,38 @@ import {
   INDUCTANCE_RANGE_H,
   RESISTANCE_RANGE_OHMS,
   SCREEN_VIEW_MARGIN,
+  SERIES_CIRCUIT_SIZE,
 } from "../../ACPhasorConstants.js";
 import { Phasor } from "../../common/model/Phasor.js";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/SimButtonOptions.js";
 import { SimPanel } from "../../common/SimPanel.js";
+import { CircuitDiagramNode } from "../../common/view/CircuitDiagramNode.js";
 import { PhasorDiagramNode } from "../../common/view/PhasorDiagramNode.js";
 import { PhasorNode } from "../../common/view/PhasorNode.js";
 import { SimNumberControl } from "../../common/view/SimNumberControl.js";
+import { SimReadout } from "../../common/view/SimReadout.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import type { SeriesRlcModel } from "../model/SeriesRlcModel.js";
 import { SeriesRlcScreenSummaryContent } from "./SeriesRlcScreenSummaryContent.js";
 
 const DIAGRAM_MODEL_RADIUS = 1;
-const DIAGRAM_VIEW_RADIUS = 135;
+const DIAGRAM_VIEW_RADIUS = 150;
 // Fraction of the dial radius the largest phasor should reach.
 const NORMALIZATION_TARGET = 0.9;
 
 export class SeriesRlcScreenView extends ScreenView {
+  private readonly model: SeriesRlcModel;
+  private readonly circuit: CircuitDiagramNode;
+  // Free-running clock: the charges flow continuously (this screen has no play/pause).
+  private elapsedTime = 0;
+
   public constructor(model: SeriesRlcModel, options?: ScreenViewOptions) {
     super({
       screenSummaryContent: new SeriesRlcScreenSummaryContent(model),
       ...options,
     });
 
+    this.model = model;
     const labels = StringManager.getInstance().getLabels();
     const a11y = StringManager.getInstance().getSeriesRlcA11yStrings();
 
@@ -52,6 +61,34 @@ export class SeriesRlcScreenView extends ScreenView {
         fill: ACPhasorColors.backgroundColorProperty,
       }),
     );
+
+    // ── Circuit diagram (R–L–C loop with flowing charges) ───────────────────
+    // Across the top: each part shows its own value (bands, windings, plate
+    // area) and the capacitor's plates charge and discharge with V_C.
+    this.circuit = new CircuitDiagramNode({
+      width: SERIES_CIRCUIT_SIZE.width,
+      height: SERIES_CIRCUIT_SIZE.height,
+      sourceVoltageProperty: model.source.voltagePhasorProperty,
+      // V_C is only a slice of the source voltage here, so scale the plate
+      // charge to its own peak rather than to an absolute reference.
+      capacitorChargeScale: "peak",
+      slots: [
+        { type: "resistor", resistanceProperty: model.resistanceProperty },
+        {
+          type: "inductor",
+          inductanceProperty: model.inductanceProperty,
+          inductanceRange: INDUCTANCE_RANGE_H,
+        },
+        {
+          type: "capacitor",
+          capacitanceProperty: model.capacitanceProperty,
+          capacitanceRange: CAPACITANCE_RANGE_F,
+          voltageProperty: model.capacitorVoltageProperty,
+        },
+      ],
+    });
+    this.circuit.left = SCREEN_VIEW_MARGIN + 10;
+    this.circuit.top = SCREEN_VIEW_MARGIN + 5;
 
     // ── Phasor diagram (voltage triangle) ───────────────────────────────────
     const diagram = new PhasorDiagramNode({
@@ -115,8 +152,8 @@ export class SeriesRlcScreenView extends ScreenView {
         labelString: "VC",
       }),
     );
-    diagram.top = SCREEN_VIEW_MARGIN + 20;
-    diagram.left = SCREEN_VIEW_MARGIN + 40;
+    diagram.top = this.circuit.bottom + 10;
+    diagram.left = SCREEN_VIEW_MARGIN + 30;
 
     // ── Readout panel ───────────────────────────────────────────────────────
     const impedanceMagnitude = new DerivedProperty([model.impedanceProperty], (impedance) => impedance.magnitude);
@@ -127,21 +164,21 @@ export class SeriesRlcScreenView extends ScreenView {
         align: "left",
         spacing: 8,
         children: [
-          this.createReadout(
+          new SimReadout(
             labels.impedanceStringProperty,
             impedanceMagnitude,
             labels.ohmsPatternStringProperty,
             new Range(0, 1000),
             1,
           ),
-          this.createReadout(
+          new SimReadout(
             labels.reactanceStringProperty,
             model.reactanceProperty,
             labels.ohmsPatternStringProperty,
             new Range(-1000, 1000),
             1,
           ),
-          this.createReadout(
+          new SimReadout(
             labels.phaseStringProperty,
             phaseDegrees,
             labels.degreesPatternStringProperty,
@@ -152,8 +189,8 @@ export class SeriesRlcScreenView extends ScreenView {
       }),
       { align: "left" },
     );
-    readoutPanel.left = diagram.left;
-    readoutPanel.top = diagram.bottom + 20;
+    readoutPanel.left = diagram.right + 40;
+    readoutPanel.top = diagram.top + 40;
 
     // ── Control panel ───────────────────────────────────────────────────────
     const resistanceControl = new SimNumberControl(
@@ -213,6 +250,7 @@ export class SeriesRlcScreenView extends ScreenView {
     });
 
     this.addChild(diagram);
+    this.addChild(this.circuit);
     this.addChild(readoutPanel);
     this.addChild(controlPanel);
     this.addChild(resetAllButton);
@@ -231,40 +269,18 @@ export class SeriesRlcScreenView extends ScreenView {
     );
   }
 
-  /** A "label  value-badge" row for the readout panel. */
-  private createReadout(
-    label: TReadOnlyProperty<string>,
-    numberProperty: TReadOnlyProperty<number>,
-    valuePattern: TReadOnlyProperty<string>,
-    displayRange: Range,
-    decimalPlaces: number,
-  ): Node {
-    return new HBox({
-      spacing: 8,
-      children: [
-        new Text(label, {
-          font: new PhetFont(14),
-          fill: ACPhasorColors.textColorProperty,
-        }),
-        new NumberDisplay(numberProperty, displayRange, {
-          valuePattern,
-          decimalPlaces,
-          textOptions: {
-            font: new PhetFont(14),
-            fill: ACPhasorColors.controlSurfaceTextColorProperty,
-          },
-          backgroundFill: ACPhasorColors.controlSurfaceColorProperty,
-          backgroundStroke: ACPhasorColors.panelBorderColorProperty,
-        }),
-      ],
-    });
-  }
-
   public reset(): void {
     // Display phasors and readouts update from model Properties automatically.
+    this.elapsedTime = 0;
   }
 
-  public override step(_dt: number): void {
-    // Static diagram — nothing to animate.
+  public override step(dt: number): void {
+    // The phasor triangle is static; only the circuit's charge flow animates.
+    this.elapsedTime += dt;
+    this.circuit.setState(
+      this.model.currentPhasorProperty.value,
+      this.model.source.angularFrequencyProperty.value,
+      this.elapsedTime,
+    );
   }
 }

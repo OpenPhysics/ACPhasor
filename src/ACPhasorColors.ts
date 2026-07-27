@@ -109,6 +109,92 @@ const ACPhasorColors = {
     projector: "#f9a825",
   }),
 
+  // ── Pictorial circuit elements ───────────────────────────────────────────────
+  // Material colors for the "realistic" component bodies (resistor body and bands,
+  // inductor coil and core, capacitor plates). Real components look the same under
+  // either profile, so these barely change between default and projector mode —
+  // they are only nudged for contrast against the background.
+
+  /** Ceramic body of the pictorial resistor. */
+  resistorBodyColorProperty: new ProfileColorProperty(ACPhasorNamespace, "resistorBody", {
+    default: "#d9c9a3",
+    projector: "#cdbb8f",
+  }),
+
+  /** Shadow along the bottom of a cylindrical component body. */
+  componentShadeColorProperty: new ProfileColorProperty(ACPhasorNamespace, "componentShade", {
+    default: "#8d7f63",
+    projector: "#7c6f56",
+  }),
+
+  /** Specular highlight along the top of a cylindrical component body. */
+  componentHighlightColorProperty: new ProfileColorProperty(ACPhasorNamespace, "componentHighlight", {
+    default: "#fdf3d8",
+    projector: "#fdf3d8",
+  }),
+
+  /** Copper winding of the pictorial inductor. */
+  coilColorProperty: new ProfileColorProperty(ACPhasorNamespace, "coil", {
+    default: "#c87137",
+    projector: "#a85a24",
+  }),
+
+  /** Lit edge of the copper winding. */
+  coilHighlightColorProperty: new ProfileColorProperty(ACPhasorNamespace, "coilHighlight", {
+    default: "#f0a868",
+    projector: "#d98c46",
+  }),
+
+  /** Ferrite core the inductor is wound around. */
+  coreColorProperty: new ProfileColorProperty(ACPhasorNamespace, "core", {
+    default: "#78909c",
+    projector: "#607d8b",
+  }),
+
+  // ── Capacitor plates (three faces of the same metal, lit from above) ─────────
+
+  /** Top face of a capacitor plate — the surface the charges sit on. */
+  plateTopColorProperty: new ProfileColorProperty(ACPhasorNamespace, "plateTop", {
+    default: "#cfd8dc",
+    projector: "#b0bec5",
+  }),
+
+  /** Front (edge) face of a capacitor plate. */
+  plateFrontColorProperty: new ProfileColorProperty(ACPhasorNamespace, "plateFront", {
+    default: "#90a4ae",
+    projector: "#78909c",
+  }),
+
+  /** Right (edge) face of a capacitor plate; darkest of the three. */
+  plateSideColorProperty: new ProfileColorProperty(ACPhasorNamespace, "plateSide", {
+    default: "#607d8b",
+    projector: "#546e7a",
+  }),
+
+  /** Outline shared by every plate face. */
+  plateEdgeColorProperty: new ProfileColorProperty(ACPhasorNamespace, "plateEdge", {
+    default: "#455a64",
+    projector: "#37474f",
+  }),
+
+  /** Electric-field arrows drawn in the capacitor gap. */
+  electricFieldColorProperty: new ProfileColorProperty(ACPhasorNamespace, "electricField", {
+    default: "#b39ddb",
+    projector: "#5e35b1",
+  }),
+
+  /** Positive charge symbols on a capacitor plate. */
+  positiveChargeColorProperty: new ProfileColorProperty(ACPhasorNamespace, "positiveCharge", {
+    default: "#ff5252",
+    projector: "#d32f2f",
+  }),
+
+  /** Negative charge symbols on a capacitor plate. */
+  negativeChargeColorProperty: new ProfileColorProperty(ACPhasorNamespace, "negativeCharge", {
+    default: "#448aff",
+    projector: "#1565c0",
+  }),
+
   // ── Circuit-component colors (R, L, C) ───────────────────────────────────────
 
   /** Resistor (R) accent — used in icons and future component nodes. */

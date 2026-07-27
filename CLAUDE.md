@@ -31,6 +31,13 @@ Forked from `TemplateSingleSim`.
 | `src/common/view/PhasorDiagramNode.ts` | Complex-plane backdrop (axes/grid) that supplies the phasor transform |
 | `src/common/view/WaveformNode.ts` | Lightweight oscilloscope trace for one sinusoid v(t)=A·cos(ωt+φ) (optional autoScale) |
 | `src/common/view/SimNumberControl.ts` | Pre-themed `NumberControl` (dark-panel title + light value badge + units pattern) |
+| `src/common/view/SimReadout.ts` | One "label + value badge" row for info panels |
+| `src/common/view/CircuitDiagramNode.ts` | Pictorial single-loop circuit: wire, source, element slots, flowing charge |
+| `src/common/view/CircuitElementNode.ts` | Base class for the pictorial elements (terminal convention) |
+| `src/common/view/ResistorNode.ts` | Ceramic resistor whose color bands encode the resistance |
+| `src/common/view/InductorNode.ts` | Copper coil on a ferrite core; winding count tracks L |
+| `src/common/view/CapacitorNode.ts` | Capacitor-Lab-style plates: perspective plates, plate charges, E-field arrows |
+| `src/common/view/ACSourceNode.ts` | AC source body with live terminal polarity marks |
 | `scripts/generate-icons.ts` | PNG icons from `public/icons/icon.svg` |
 
 ## Common components
@@ -111,6 +118,34 @@ these rather than re-deriving the complex math:
   imperative scope — call `setWaveform(A, ω, φ)` on change and `setCursorTime(t)` in `step`.
 
 Physics defaults and ranges (amplitude, frequency, R/L/C) live in `ACPhasorConstants.ts`.
+
+### Pictorial circuit (`CircuitDiagramNode` + element nodes)
+
+Screens draw the circuit with parts, not schematic symbols, in the spirit of PhET's
+Capacitor Lab: Basics. Declare the loop once and let it bind to the model:
+
+```typescript
+const circuit = new CircuitDiagramNode({
+  width: INTRO_CIRCUIT_SIZE.width,
+  height: INTRO_CIRCUIT_SIZE.height,
+  sourceVoltageProperty: model.source.voltagePhasorProperty,
+  slots: [{ type: "capacitor", capacitanceProperty, capacitanceRange, voltageProperty }],
+});
+// each frame:
+circuit.setState(model.currentPhasorProperty.value, angularFrequency, time);
+```
+
+- A slot takes either a fixed `type` or a live `typeProperty` (all three parts are built
+  and the selected one shown). Its optional value Properties drive the drawing:
+  resistor color bands encode R, winding count tracks L, plate area grows with C.
+- The capacitor's plate charge is q = C·v from the slot's `voltageProperty`, drawn as
+  ± symbols with electric-field arrows in the gap. `capacitorChargeScale` picks the
+  reference: `"absolute"` (against `CAPACITOR_SATURATION_CHARGE_C`) where the element
+  sees the source voltage, `"peak"` in a series loop where V_C can be a sliver of it.
+- Every element in a slot shares one footprint (`ELEMENT_HALF_WIDTH`) and the diagram
+  freezes its layout bounds at construction, so switching type never shifts the screen.
+- Carriers ride the rounded wire path and hide where a part covers it; their sway is
+  the charge q(t) = ∫i dt, so the motion is the current.
 
 ## Accessibility
 

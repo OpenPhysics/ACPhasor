@@ -8,6 +8,7 @@
  * frequency.
  */
 import { DerivedProperty, Multilink, Property } from "scenerystack/axon";
+import { Range } from "scenerystack/dot";
 import type { Color } from "scenerystack/scenery";
 import { Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { PhetFont, ResetAllButton, TimeControlNode } from "scenerystack/scenery-phet";
@@ -20,6 +21,7 @@ import {
   AC_FREQUENCY_RANGE_HZ,
   CAPACITANCE_RANGE_F,
   INDUCTANCE_RANGE_H,
+  INTRO_CIRCUIT_SIZE,
   RESISTANCE_RANGE_OHMS,
   SCREEN_VIEW_MARGIN,
 } from "../../ACPhasorConstants.js";
@@ -31,9 +33,11 @@ import {
   FLAT_RESET_ALL_BUTTON_OPTIONS,
 } from "../../common/SimButtonOptions.js";
 import { SimPanel } from "../../common/SimPanel.js";
+import { CircuitDiagramNode } from "../../common/view/CircuitDiagramNode.js";
 import { PhasorDiagramNode } from "../../common/view/PhasorDiagramNode.js";
 import { PhasorNode } from "../../common/view/PhasorNode.js";
 import { SimNumberControl } from "../../common/view/SimNumberControl.js";
+import { SimReadout } from "../../common/view/SimReadout.js";
 import { WaveformNode } from "../../common/view/WaveformNode.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import type { IntroModel } from "../model/IntroModel.js";
@@ -41,12 +45,15 @@ import { IntroScreenSummaryContent } from "./IntroScreenSummaryContent.js";
 
 // Phasor "clock" geometry (model units span the diagram; arrows ride the circle).
 const DIAL_MODEL_RADIUS = 1;
-const DIAL_ARROW_LENGTH = 0.92;
-const DIAL_VIEW_RADIUS = 105;
+const DIAL_VOLTAGE_ARROW_LENGTH = 0.92;
+// The current arrow is drawn shorter so it stays visible where it coincides
+// with the voltage arrow (a resistor puts them exactly in phase).
+const DIAL_CURRENT_ARROW_LENGTH = 0.62;
+const DIAL_VIEW_RADIUS = 115;
 
 // Oscilloscope geometry.
-const SCOPE_WIDTH = 300;
-const SCOPE_HEIGHT = 96;
+const SCOPE_WIDTH = 600;
+const SCOPE_HEIGHT = 100;
 const SCOPE_TIME_WINDOW = 3; // seconds shown across the width
 
 export class IntroScreenView extends ScreenView {
@@ -62,6 +69,7 @@ export class IntroScreenView extends ScreenView {
 
   private readonly voltageScope: WaveformNode;
   private readonly currentScope: WaveformNode;
+  private readonly circuit: CircuitDiagramNode;
 
   public constructor(model: IntroModel, options?: ScreenViewOptions) {
     super({
@@ -95,7 +103,7 @@ export class IntroScreenView extends ScreenView {
     const diagram = new PhasorDiagramNode({
       modelRadius: DIAL_MODEL_RADIUS,
       viewRadius: DIAL_VIEW_RADIUS,
-      referenceCircleRadius: DIAL_ARROW_LENGTH,
+      referenceCircleRadius: DIAL_VOLTAGE_ARROW_LENGTH,
     });
     diagram.addChild(
       new PhasorNode(this.displayVoltageProperty, diagram.modelViewTransform, {
@@ -110,7 +118,7 @@ export class IntroScreenView extends ScreenView {
       }),
     );
     diagram.top = SCREEN_VIEW_MARGIN + 10;
-    diagram.left = SCREEN_VIEW_MARGIN + 30;
+    diagram.left = SCREEN_VIEW_MARGIN + 20;
 
     // ── Oscilloscope traces ─────────────────────────────────────────────────
     this.voltageScope = new WaveformNode({
@@ -141,8 +149,26 @@ export class IntroScreenView extends ScreenView {
         this.currentScope,
       ],
     });
-    scopeStack.top = diagram.bottom + 24;
-    scopeStack.left = SCREEN_VIEW_MARGIN + 10;
+    scopeStack.left = SCREEN_VIEW_MARGIN + 20;
+
+    // ── Circuit diagram (pictorial parts, flowing charge, live polarity) ─────
+    this.circuit = new CircuitDiagramNode({
+      width: INTRO_CIRCUIT_SIZE.width,
+      height: INTRO_CIRCUIT_SIZE.height,
+      sourceVoltageProperty: model.source.voltagePhasorProperty,
+      slots: [
+        {
+          typeProperty: model.elementTypeProperty,
+          resistanceProperty: model.resistanceProperty,
+          inductanceProperty: model.inductanceProperty,
+          inductanceRange: INDUCTANCE_RANGE_H,
+          capacitanceProperty: model.capacitanceProperty,
+          capacitanceRange: CAPACITANCE_RANGE_F,
+          // On this screen the element sees the full source voltage.
+          voltageProperty: model.voltagePhasorProperty,
+        },
+      ],
+    });
 
     // ── Control panel ───────────────────────────────────────────────────────
     const componentLabelFont = new PhetFont(14);
@@ -244,6 +270,44 @@ export class IntroScreenView extends ScreenView {
     controlPanel.right = this.layoutBounds.maxX - SCREEN_VIEW_MARGIN;
     controlPanel.top = SCREEN_VIEW_MARGIN;
 
+    // ── Readout panel: what the selected element does to the current ────────
+    const impedanceMagnitude = new DerivedProperty([model.impedanceProperty], (impedance) => impedance.magnitude);
+    const phaseDegrees = new DerivedProperty(
+      [model.phaseDifferenceProperty],
+      (phaseDifference) => (phaseDifference * 180) / Math.PI,
+    );
+    const readoutPanel = new SimPanel(
+      new VBox({
+        align: "left",
+        spacing: 8,
+        children: [
+          new SimReadout(
+            labels.impedanceStringProperty,
+            impedanceMagnitude,
+            labels.ohmsPatternStringProperty,
+            new Range(0, 10000),
+            1,
+          ),
+          new SimReadout(
+            labels.phaseStringProperty,
+            phaseDegrees,
+            labels.degreesPatternStringProperty,
+            new Range(-90, 90),
+            0,
+          ),
+        ],
+      }),
+      { align: "left" },
+    );
+    readoutPanel.centerX = controlPanel.centerX;
+    readoutPanel.top = controlPanel.bottom + 25;
+
+    // The circuit fills the column between the phasor clock and the controls;
+    // the scopes run the full width underneath both.
+    this.circuit.centerX = (diagram.right + controlPanel.left) / 2;
+    this.circuit.top = SCREEN_VIEW_MARGIN + 15;
+    scopeStack.top = Math.max(diagram.bottom, this.circuit.bottom) + 20;
+
     // ── Time control + reset ────────────────────────────────────────────────
     const timeControl = new TimeControlNode(model.timer.isPlayingProperty, {
       playPauseStepButtonOptions: {
@@ -253,7 +317,7 @@ export class IntroScreenView extends ScreenView {
           listener: () => model.step(1 / 60),
         },
       },
-      centerX: scopeStack.centerX,
+      centerX: controlPanel.centerX,
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
     });
 
@@ -268,8 +332,10 @@ export class IntroScreenView extends ScreenView {
     });
 
     this.addChild(diagram);
+    this.addChild(this.circuit);
     this.addChild(scopeStack);
     this.addChild(controlPanel);
+    this.addChild(readoutPanel);
     this.addChild(timeControl);
     this.addChild(resetAllButton);
 
@@ -307,11 +373,13 @@ export class IntroScreenView extends ScreenView {
     const voltagePhase = this.model.voltagePhasorProperty.value.phase;
     const currentPhase = this.model.currentPhasorProperty.value.phase;
 
-    this.displayVoltageProperty.value = new Phasor(DIAL_ARROW_LENGTH, voltagePhase + rotation);
-    this.displayCurrentProperty.value = new Phasor(DIAL_ARROW_LENGTH, currentPhase + rotation);
+    this.displayVoltageProperty.value = new Phasor(DIAL_VOLTAGE_ARROW_LENGTH, voltagePhase + rotation);
+    this.displayCurrentProperty.value = new Phasor(DIAL_CURRENT_ARROW_LENGTH, currentPhase + rotation);
 
     this.voltageScope.setCursorTime(time);
     this.currentScope.setCursorTime(time);
+
+    this.circuit.setState(this.model.currentPhasorProperty.value, angularFrequency, time);
   }
 
   public reset(): void {
