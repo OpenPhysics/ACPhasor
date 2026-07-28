@@ -31,8 +31,10 @@ import {
   FLAT_PLAY_PAUSE_STEP_BUTTON_OPTIONS,
   FLAT_RECTANGULAR_BUTTON_OPTIONS,
   FLAT_RESET_ALL_BUTTON_OPTIONS,
+  TIME_CONTROL_SPEED_RADIO_OPTIONS,
 } from "../../common/SimButtonOptions.js";
 import { SimPanel } from "../../common/SimPanel.js";
+import { DEFAULT_TIME_SPEEDS } from "../../common/TimeModel.js";
 import { CircuitDiagramNode } from "../../common/view/CircuitDiagramNode.js";
 import { createElementSymbol } from "../../common/view/CircuitSymbols.js";
 import { PhasorDiagramNode } from "../../common/view/PhasorDiagramNode.js";
@@ -307,7 +309,12 @@ export class IntroScreenView extends ScreenView {
     scopeStack.top = Math.max(diagram.bottom, this.circuit.bottom) + 20;
 
     // ── Time control + reset ────────────────────────────────────────────────
+    // TimeControlNode is SceneryStack's built-in: play/pause + step buttons and,
+    // when given timeSpeedProperty, the speed radio buttons too.
     const timeControl = new TimeControlNode(model.timer.isPlayingProperty, {
+      timeSpeedProperty: model.timer.timeSpeedProperty,
+      timeSpeeds: DEFAULT_TIME_SPEEDS,
+      ...TIME_CONTROL_SPEED_RADIO_OPTIONS,
       playPauseStepButtonOptions: {
         ...FLAT_PLAY_PAUSE_STEP_BUTTON_OPTIONS,
         stepForwardButtonOptions: {
