@@ -7,9 +7,15 @@
  * decade multiplier, closed by a gold tolerance band), so dragging the
  * resistance control repaints the part the way swapping a real resistor would.
  *
+ * {@link setDissipationFraction} adds the one thing the inductor and capacitor
+ * never do: a heat glow that follows p(t) = i²R. It peaks twice per cycle and
+ * never goes negative, so a resistor visibly *spends* energy while the other two
+ * are visibly storing and returning it.
+ *
  * ── Usage ─────────────────────────────────────────────────────────────────────
  *
  *   const resistor = new ResistorNode( { resistanceProperty: model.resistanceProperty } );
+ *   resistor.setDissipationFraction( 0.7 );   // 70% of peak power right now
  */
 
 import type { TReadOnlyProperty } from "scenerystack/axon";
@@ -85,10 +91,14 @@ function bandColorsFor(resistance: number): [string, string, string] {
   return [digitColor(Math.floor(twoDigits / 10)), digitColor(twoDigits % 10), multiplierColor(exponent)];
 }
 
+/** Padding of the heat glow beyond the body outline, in pixels. */
+const GLOW_PADDING = 6;
+
 export class ResistorNode extends CircuitElementNode {
   public readonly connectionHalfWidth: number;
 
   private readonly valueBands: Rectangle[] = [];
+  private readonly heatGlow: Rectangle;
 
   public constructor(providedOptions?: SelfOptions) {
     const options = {
@@ -117,6 +127,20 @@ export class ResistorNode extends CircuitElementNode {
         ),
       );
     }
+
+    // Heat glow behind the body; its opacity is driven by setDissipationFraction.
+    this.heatGlow = new Rectangle(
+      -halfLength - GLOW_PADDING,
+      -halfDiameter - GLOW_PADDING,
+      options.bodyLength + 2 * GLOW_PADDING,
+      options.bodyDiameter + 2 * GLOW_PADDING,
+      {
+        cornerRadius: halfDiameter,
+        fill: ACPhasorColors.dissipationGlowColorProperty,
+        opacity: 0,
+      },
+    );
+    this.addChild(this.heatGlow);
 
     const bodyShape = Shape.roundRect(
       -halfLength,
@@ -198,5 +222,14 @@ export class ResistorNode extends CircuitElementNode {
         });
       });
     }
+  }
+
+  /**
+   * Show the power the resistor is dissipating right now, as a fraction of its
+   * peak: 0 leaves the part cold, 1 gives it the full heat glow. Power is never
+   * negative, so this argument is unsigned.
+   */
+  public setDissipationFraction(fraction: number): void {
+    this.heatGlow.opacity = 0.55 * Math.max(0, Math.min(1, fraction));
   }
 }

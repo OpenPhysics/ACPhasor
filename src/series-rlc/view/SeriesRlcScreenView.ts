@@ -69,15 +69,17 @@ export class SeriesRlcScreenView extends ScreenView {
       width: SERIES_CIRCUIT_SIZE.width,
       height: SERIES_CIRCUIT_SIZE.height,
       sourceVoltageProperty: model.source.voltagePhasorProperty,
-      // V_C is only a slice of the source voltage here, so scale the plate
-      // charge to its own peak rather than to an absolute reference.
-      capacitorChargeScale: "peak",
+      // Each element takes only a slice of the source voltage here, so scale the
+      // plate charge and the inductor's EMF marks to their own peaks rather than
+      // to an absolute reference.
+      elementScale: "peak",
       slots: [
         { type: "resistor", resistanceProperty: model.resistanceProperty },
         {
           type: "inductor",
           inductanceProperty: model.inductanceProperty,
           inductanceRange: INDUCTANCE_RANGE_H,
+          voltageProperty: model.inductorVoltageProperty,
         },
         {
           type: "capacitor",

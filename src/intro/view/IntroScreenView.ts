@@ -10,8 +10,8 @@
 import { DerivedProperty, Multilink, Property } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
 import type { Color } from "scenerystack/scenery";
-import { Node, Rectangle, Text, VBox } from "scenerystack/scenery";
-import { PhetFont, ResetAllButton, TimeControlNode } from "scenerystack/scenery-phet";
+import { Node, Rectangle, VBox } from "scenerystack/scenery";
+import { ResetAllButton, TimeControlNode } from "scenerystack/scenery-phet";
 import type { ScreenViewOptions } from "scenerystack/sim";
 import { ScreenView } from "scenerystack/sim";
 import { RectangularRadioButtonGroup } from "scenerystack/sun";
@@ -34,6 +34,7 @@ import {
 } from "../../common/SimButtonOptions.js";
 import { SimPanel } from "../../common/SimPanel.js";
 import { CircuitDiagramNode } from "../../common/view/CircuitDiagramNode.js";
+import { createElementSymbol } from "../../common/view/CircuitSymbols.js";
 import { PhasorDiagramNode } from "../../common/view/PhasorDiagramNode.js";
 import { PhasorNode } from "../../common/view/PhasorNode.js";
 import { SimNumberControl } from "../../common/view/SimNumberControl.js";
@@ -50,6 +51,9 @@ const DIAL_VOLTAGE_ARROW_LENGTH = 0.92;
 // with the voltage arrow (a resistor puts them exactly in phase).
 const DIAL_CURRENT_ARROW_LENGTH = 0.62;
 const DIAL_VIEW_RADIUS = 115;
+
+// Width of the schematic symbol on each element-picker button.
+const PICKER_SYMBOL_WIDTH = 50;
 
 // Oscilloscope geometry.
 const SCOPE_WIDTH = 600;
@@ -172,33 +176,26 @@ export class IntroScreenView extends ScreenView {
     });
 
     // ── Control panel ───────────────────────────────────────────────────────
-    const componentLabelFont = new PhetFont(14);
+    // The picker shows each element as its schematic symbol rather than its
+    // name: the glyph is the notation students meet on every circuit diagram,
+    // and it needs no translation.
     const componentGroup = new RectangularRadioButtonGroup<CircuitElementType>(
       model.elementTypeProperty,
       [
         {
           value: "resistor",
-          createNode: () =>
-            new Text(labels.resistorStringProperty, {
-              font: componentLabelFont,
-              fill: ACPhasorColors.resistorColorProperty,
-            }),
+          createNode: () => createElementSymbol("resistor", { width: PICKER_SYMBOL_WIDTH }),
+          options: { accessibleName: labels.resistorStringProperty },
         },
         {
           value: "inductor",
-          createNode: () =>
-            new Text(labels.inductorStringProperty, {
-              font: componentLabelFont,
-              fill: ACPhasorColors.inductorColorProperty,
-            }),
+          createNode: () => createElementSymbol("inductor", { width: PICKER_SYMBOL_WIDTH }),
+          options: { accessibleName: labels.inductorStringProperty },
         },
         {
           value: "capacitor",
-          createNode: () =>
-            new Text(labels.capacitorStringProperty, {
-              font: componentLabelFont,
-              fill: ACPhasorColors.capacitorColorProperty,
-            }),
+          createNode: () => createElementSymbol("capacitor", { width: PICKER_SYMBOL_WIDTH }),
+          options: { accessibleName: labels.capacitorStringProperty },
         },
       ],
       {
@@ -207,8 +204,8 @@ export class IntroScreenView extends ScreenView {
         accessibleName: a11y.controls.componentStringProperty,
         radioButtonOptions: {
           baseColor: ACPhasorColors.controlSurfaceColorProperty,
-          xMargin: 8,
-          yMargin: 6,
+          xMargin: 10,
+          yMargin: 8,
         },
       },
     );
@@ -315,7 +312,8 @@ export class IntroScreenView extends ScreenView {
         ...FLAT_PLAY_PAUSE_STEP_BUTTON_OPTIONS,
         stepForwardButtonOptions: {
           ...FLAT_RECTANGULAR_BUTTON_OPTIONS,
-          listener: () => model.step(1 / 60),
+          // stepForward, not step: the button is only ever pressed while paused.
+          listener: () => model.timer.stepForward(1 / 60),
         },
       },
       centerX: controlPanel.centerX,

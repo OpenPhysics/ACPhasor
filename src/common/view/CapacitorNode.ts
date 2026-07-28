@@ -72,6 +72,8 @@ export class CapacitorNode extends CircuitElementNode {
   private readonly leads: Path;
   private readonly topPlateFaces: Path[];
   private readonly bottomPlateFaces: Path[];
+  private readonly topPlateTint: Path;
+  private readonly bottomPlateTint: Path;
   private readonly topPlusNodes: Node[] = [];
   private readonly topMinusNodes: Node[] = [];
   private readonly bottomPlusNodes: Node[] = [];
@@ -80,6 +82,8 @@ export class CapacitorNode extends CircuitElementNode {
 
   private plateWidth: number;
   private chargeCount = 0;
+  /** |q| as a continuous 0–1 fraction; the symbol count is its quantized form. */
+  private chargeMagnitude = 0;
   private topPlatePositive = true;
 
   public constructor(providedOptions?: SelfOptions) {
@@ -125,6 +129,11 @@ export class CapacitorNode extends CircuitElementNode {
     for (const face of this.bottomPlateFaces) {
       this.addChild(face);
     }
+    // A wash of charge color over the plate surface. The ± symbols say how much
+    // charge is there; the tint makes the swing readable at a glance, and from
+    // the back of a classroom.
+    this.bottomPlateTint = this.createPlateTint();
+    this.addChild(this.bottomPlateTint);
     const bottomCharges = new Node();
     this.addChild(bottomCharges);
 
@@ -135,6 +144,8 @@ export class CapacitorNode extends CircuitElementNode {
     for (const face of this.topPlateFaces) {
       this.addChild(face);
     }
+    this.topPlateTint = this.createPlateTint();
+    this.addChild(this.topPlateTint);
     const topCharges = new Node();
     this.addChild(topCharges);
 
@@ -215,14 +226,19 @@ export class CapacitorNode extends CircuitElementNode {
    */
   public setChargeFraction(signedFraction: number): void {
     const magnitude = Math.max(0, Math.min(1, Math.abs(signedFraction)));
-    const count = Math.round(magnitude * this.maxCharges);
     const positive = signedFraction >= 0;
-    if (count === this.chargeCount && positive === this.topPlatePositive) {
+    if (Math.abs(magnitude - this.chargeMagnitude) < 0.004 && positive === this.topPlatePositive) {
       return;
     }
-    this.chargeCount = count;
+    this.chargeMagnitude = magnitude;
+    this.chargeCount = Math.round(magnitude * this.maxCharges);
     this.topPlatePositive = positive;
     this.updateCharges();
+  }
+
+  /** The charge wash laid over a plate's top surface. */
+  private createPlateTint(): Path {
+    return new Path(null, { fill: ACPhasorColors.positiveChargeColorProperty, opacity: 0 });
   }
 
   /** Three Paths — top face, front face, right face — that make up one plate. */
@@ -270,6 +286,10 @@ export class CapacitorNode extends CircuitElementNode {
     setPlateShapes(this.topPlateFaces, this.topPlateTopY);
     setPlateShapes(this.bottomPlateFaces, this.bottomPlateTopY);
 
+    // The tint covers exactly the top face of each plate.
+    this.topPlateTint.shape = this.topPlateFaces[0]?.shape ?? null;
+    this.bottomPlateTint.shape = this.bottomPlateFaces[0]?.shape ?? null;
+
     const topLeadY = this.topPlateTopY + thickness / 2;
     const bottomLeadY = this.bottomPlateTopY + thickness / 2;
     this.leads.shape = new Shape()
@@ -283,6 +303,13 @@ export class CapacitorNode extends CircuitElementNode {
 
   /** Re-place the charge symbols and field arrows for the current charge. */
   private updateCharges(): void {
+    const positiveFill = ACPhasorColors.positiveChargeColorProperty;
+    const negativeFill = ACPhasorColors.negativeChargeColorProperty;
+    this.topPlateTint.fill = this.topPlatePositive ? positiveFill : negativeFill;
+    this.bottomPlateTint.fill = this.topPlatePositive ? negativeFill : positiveFill;
+    this.topPlateTint.opacity = 0.5 * this.chargeMagnitude;
+    this.bottomPlateTint.opacity = 0.5 * this.chargeMagnitude;
+
     this.layoutPlateCharges(
       this.topPlateTopY,
       this.topPlatePositive ? this.topPlusNodes : this.topMinusNodes,
@@ -346,7 +373,7 @@ export class CapacitorNode extends CircuitElementNode {
 
   /** Field arrows in the gap: more of them, and more opaque, as charge builds. */
   private updateFieldArrows(): void {
-    const fraction = this.chargeCount / this.maxCharges;
+    const fraction = this.chargeMagnitude;
     const visibleCount = Math.min(this.fieldArrows.length, Math.ceil(fraction * this.fieldArrows.length));
     const gapTop = -this.plateSeparation / 2;
     const gapBottom = this.plateSeparation / 2;

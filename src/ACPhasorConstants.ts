@@ -72,6 +72,23 @@ export const CAPACITANCE_RANGE_F = new Range(0.1, 10);
  */
 export const CAPACITOR_SATURATION_CHARGE_C = 10;
 
+/**
+ * Induced EMF |v_L| = |L·di/dt| (volts) at which the pictorial inductor shows its
+ * polarity marks at full strength. Set to the top of the source-voltage range, so
+ * an inductor that takes the whole source voltage swings its marks to full scale.
+ */
+export const INDUCTOR_SATURATION_EMF_V = 10;
+
+/**
+ * Current (amps) at which the live, current-driven decorations — the inductor's
+ * flux arrows and the resistor's heat glow — reach full strength. The current in
+ * these circuits spans decades as |Z| changes, so the decorations are drawn
+ * relative to their own peak and then dimmed by this reference: a large current
+ * looks strong, a tiny one stays visible, and both still swing through zero
+ * twice a cycle.
+ */
+export const CURRENT_DISPLAY_REFERENCE_A = 0.5;
+
 /** Loop size of the circuit diagram on the Intro screen (px). */
 export const INTRO_CIRCUIT_SIZE = { width: 360, height: 175 };
 
@@ -92,6 +109,8 @@ ACPhasorNamespace.register("ACPhasorConstants", {
   CAPACITANCE_DEFAULT_F,
   CAPACITANCE_RANGE_F,
   CAPACITOR_SATURATION_CHARGE_C,
+  INDUCTOR_SATURATION_EMF_V,
+  CURRENT_DISPLAY_REFERENCE_A,
   INTRO_CIRCUIT_SIZE,
   SERIES_CIRCUIT_SIZE,
 });

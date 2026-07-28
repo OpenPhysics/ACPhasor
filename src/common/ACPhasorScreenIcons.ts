@@ -9,13 +9,18 @@
  *   Resonance   — a sharp resonance-peak curve
  *   Power       — an instantaneous-power p(t) waveform with shaded lobes
  */
+import { Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
 import { Node, Path, Rectangle } from "scenerystack/scenery";
 import { ScreenIcon } from "scenerystack/sim";
 import ACPhasorColors from "../ACPhasorColors.js";
+import { createCapacitorSymbol, createInductorSymbol, createResistorSymbol } from "./view/CircuitSymbols.js";
 
 const W = 548;
 const H = 373;
+
+/** Stroke weight for the element glyphs at icon scale. */
+const ICON_LINE_WIDTH = 8;
 
 function background(): Rectangle {
   return new Rectangle(0, 0, W, H, { fill: ACPhasorColors.backgroundColorProperty });
@@ -29,68 +34,43 @@ function iconFrom(content: Node): ScreenIcon {
   });
 }
 
+/**
+ * Places one of the shared {@link CircuitSymbols} glyphs with its wire line on
+ * (cx, cy). The icons draw the same symbols the element picker does, just
+ * heavier — one glyph per element, wherever it appears.
+ */
+function motif(symbol: Node, cx: number, cy: number): Node {
+  symbol.translation = new Vector2(cx, cy);
+  return symbol;
+}
+
 /** Zigzag resistor motif centered at (cx, cy). */
-function resistorPath(cx: number, cy: number, width: number): Path {
-  const half = width / 2;
-  const amp = 18;
-  const shape = new Shape().moveTo(cx - half, cy);
-  const segments = 6;
-  const step = width / segments;
-  for (let i = 0; i < segments; i++) {
-    const x = cx - half + (i + 0.5) * step;
-    const y = cy + (i % 2 === 0 ? -amp : amp);
-    shape.lineTo(x, y);
-  }
-  shape.lineTo(cx + half, cy);
-  return new Path(shape, {
-    stroke: ACPhasorColors.resistorColorProperty,
-    lineWidth: 8,
-    lineCap: "round",
-    lineJoin: "round",
-  });
+function resistorMotif(cx: number, cy: number, width: number): Node {
+  return motif(
+    createResistorSymbol({ width: width, height: 36, lineWidth: ICON_LINE_WIDTH, showLeads: false }),
+    cx,
+    cy,
+  );
 }
 
 /** Coil (inductor) motif centered at (cx, cy). */
-function inductorPath(cx: number, cy: number, width: number): Path {
-  const half = width / 2;
-  const r = 16;
-  const shape = new Shape().moveTo(cx - half, cy);
-  const loops = 4;
-  const step = width / loops;
-  for (let i = 0; i < loops; i++) {
-    const x0 = cx - half + i * step;
-    shape.arc(x0 + step / 2, cy, r, Math.PI, 0, false);
-  }
-  return new Path(shape, {
-    stroke: ACPhasorColors.inductorColorProperty,
-    lineWidth: 8,
-    lineCap: "round",
-  });
+function inductorMotif(cx: number, cy: number, width: number): Node {
+  return motif(
+    createInductorSymbol({ width: width, height: 16, lineWidth: ICON_LINE_WIDTH, showLeads: false }),
+    cx,
+    cy,
+  );
 }
 
 /** Parallel-plate capacitor motif centered at (cx, cy). */
-function capacitorNode(cx: number, cy: number): Node {
-  const plateH = 70;
-  const gap = 18;
-  const plateW = 10;
-  return new Node({
-    children: [
-      new Rectangle(cx - gap / 2 - plateW, cy - plateH / 2, plateW, plateH, {
-        fill: ACPhasorColors.capacitorColorProperty,
-        cornerRadius: 2,
-      }),
-      new Rectangle(cx + gap / 2, cy - plateH / 2, plateW, plateH, {
-        fill: ACPhasorColors.capacitorColorProperty,
-        cornerRadius: 2,
-      }),
-    ],
-  });
+function capacitorMotif(cx: number, cy: number): Node {
+  return motif(createCapacitorSymbol({ width: 100, height: 70, lineWidth: 10, showLeads: false }), cx, cy);
 }
 
 export function createIntroIcon(): ScreenIcon {
   return iconFrom(
     new Node({
-      children: [background(), resistorPath(W / 2, H / 2, 220)],
+      children: [background(), resistorMotif(W / 2, H / 2, 220)],
     }),
   );
 }
@@ -104,7 +84,7 @@ export function createSeriesRlcIcon(): ScreenIcon {
   });
   return iconFrom(
     new Node({
-      children: [background(), wire, resistorPath(150, y, 100), inductorPath(274, y, 100), capacitorNode(410, y)],
+      children: [background(), wire, resistorMotif(150, y, 100), inductorMotif(274, y, 100), capacitorMotif(410, y)],
     }),
   );
 }

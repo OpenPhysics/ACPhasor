@@ -39,6 +39,14 @@ describe("TimeModel", () => {
     model.dispose();
   });
 
+  it("stepForward() advances time even while paused", () => {
+    const model = new TimeModel();
+    model.stepForward(1 / 60);
+    model.stepForward(1 / 60);
+    expect(model.timeProperty.value).toBeCloseTo(2 / 60);
+    model.dispose();
+  });
+
   it("reset() restores the initial playback state and clears time", () => {
     const model = new TimeModel();
     model.isPlayingProperty.value = true;

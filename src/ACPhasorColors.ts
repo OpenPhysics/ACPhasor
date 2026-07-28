@@ -151,6 +151,18 @@ const ACPhasorColors = {
     projector: "#607d8b",
   }),
 
+  /** Magnetic-field (flux) arrows through the inductor's core. */
+  magneticFieldColorProperty: new ProfileColorProperty(ACPhasorNamespace, "magneticField", {
+    default: "#4dd0e1",
+    projector: "#00838f",
+  }),
+
+  /** Heat glow around the resistor body, showing the power it dissipates. */
+  dissipationGlowColorProperty: new ProfileColorProperty(ACPhasorNamespace, "dissipationGlow", {
+    default: "#ff7043",
+    projector: "#e64a19",
+  }),
+
   // ── Capacitor plates (three faces of the same metal, lit from above) ─────────
 
   /** Top face of a capacitor plate — the surface the charges sit on. */

@@ -33,7 +33,7 @@
  *   const timeControl = new TimeControlNode( model.timer.isPlayingProperty, {
  *     playPauseStepButtonOptions: {
  *       stepForwardButtonOptions: {
- *         listener: () => model.step( 1 / 60 ),
+ *         listener: () => model.timer.stepForward( 1 / 60 ),
  *       },
  *     },
  *   });
@@ -66,6 +66,15 @@ export class TimeModel {
     if (this.isPlayingProperty.value) {
       this.timeProperty.value += dt;
     }
+  }
+
+  /**
+   * Advance the clock by dt seconds whether or not it is running. This is what a
+   * step-forward button needs: it is pressed precisely when the sim is paused,
+   * so {@link step} would ignore it.
+   */
+  public stepForward(dt: number): void {
+    this.timeProperty.value += dt;
   }
 
   /** Resets clock and playback state to their initial values. */

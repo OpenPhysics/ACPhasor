@@ -34,8 +34,9 @@ Forked from `TemplateSingleSim`.
 | `src/common/view/SimReadout.ts` | One "label + value badge" row for info panels |
 | `src/common/view/CircuitDiagramNode.ts` | Pictorial single-loop circuit: wire, source, element slots, flowing charge |
 | `src/common/view/CircuitElementNode.ts` | Base class for the pictorial elements (terminal convention) |
-| `src/common/view/ResistorNode.ts` | Ceramic resistor whose color bands encode the resistance |
-| `src/common/view/InductorNode.ts` | Copper coil on a ferrite core; winding count tracks L |
+| `src/common/view/CircuitSymbols.ts` | Schematic R / L / C glyphs shared by the element picker and the screen icons |
+| `src/common/view/ResistorNode.ts` | Ceramic resistor: color bands encode R, heat glow follows i²R |
+| `src/common/view/InductorNode.ts` | Copper coil on a ferrite core; windings track L, flux arrows and ± marks show v = L·di/dt |
 | `src/common/view/CapacitorNode.ts` | Capacitor-Lab-style plates: perspective plates, plate charges, E-field arrows |
 | `src/common/view/ACSourceNode.ts` | AC source body with live terminal polarity marks |
 | `scripts/generate-icons.ts` | PNG icons from `public/icons/icon.svg` |
@@ -72,7 +73,9 @@ export class MyModel implements TModel {
 ```
 
 Wire the view to `TimeControlNode` from `scenerystack/scenery-phet` binding on
-`model.timer.isPlayingProperty`.
+`model.timer.isPlayingProperty`. Give its step-forward button
+`listener: () => model.timer.stepForward(1 / 60)` — `step()` ignores dt while paused,
+which is exactly when that button is pressed.
 
 ### SimButtonOptions
 
@@ -152,14 +155,42 @@ circuit.setState(model.currentPhasorProperty.value, angularFrequency, time);
 - A slot takes either a fixed `type` or a live `typeProperty` (all three parts are built
   and the selected one shown). Its optional value Properties drive the drawing:
   resistor color bands encode R, winding count tracks L, plate area grows with C.
-- The capacitor's plate charge is q = C·v from the slot's `voltageProperty`, drawn as
-  ± symbols with electric-field arrows in the gap. `capacitorChargeScale` picks the
-  reference: `"absolute"` (against `CAPACITOR_SATURATION_CHARGE_C`) where the element
-  sees the source voltage, `"peak"` in a series loop where V_C can be a sliver of it.
+- Each element also gets a **live decoration** driven by `setState`, and the three
+  together tell one story — R spends energy, L and C store and return it:
+  the resistor glows with p = i²R; the inductor's flux arrows follow i while its
+  terminal ± marks follow v = L·di/dt, so the arrows peak exactly when the marks
+  vanish; the capacitor's plates carry q = C·v as ± symbols, a charge tint, and
+  field arrows in the gap.
+- `elementScale` picks the reference those voltage-driven decorations use:
+  `"absolute"` (against `CAPACITOR_SATURATION_CHARGE_C` / `INDUCTOR_SATURATION_EMF_V`)
+  where the element sees the source voltage, `"peak"` in a series loop where one
+  element's share can be a sliver of it. Pass the element's `voltageProperty` in the
+  slot or the decoration has nothing to scale.
 - Every element in a slot shares one footprint (`ELEMENT_HALF_WIDTH`) and the diagram
   freezes its layout bounds at construction, so switching type never shifts the screen.
 - Carriers ride the rounded wire path and hide where a part covers it; their sway is
-  the charge q(t) = ∫i dt, so the motion is the current.
+  the charge q(t) = ∫i dt, so the motion is the current. **A capacitor cuts the loop**:
+  carriers queue against the plate they are flowing toward (`pilePitch` apart) and
+  thin out at the other, so the pile you see *is* the stored charge. Keep the sway cap
+  at a few carrier spacings — the queue and the gap both need room to be visible.
+
+### Schematic symbols (`CircuitSymbols`)
+
+Anywhere an element is *named* rather than drawn — the Intro screen's element picker,
+the screen icons — use the shared glyph, not a word:
+
+```typescript
+import { createElementSymbol } from "../../common/view/CircuitSymbols.js";
+createNode: () => createElementSymbol("inductor", { width: 50 }),
+options: { accessibleName: labels.inductorStringProperty },   // screen readers still say it
+```
+
+Each factory takes `width`, `height` (glyph extent: zigzag peak-to-peak, winding
+radius, plate length), `lineWidth`, `stroke` (defaults to the element's accent color),
+and `showLeads`. Symbols are centered on the origin and drawn along the y = 0 wire
+line, so they can be dropped into a button, a wire run, or an icon canvas by
+translation alone. Keep the a11y name on the button: the glyph carries the meaning
+visually, the string carries it to the PDOM.
 
 ## Accessibility
 
