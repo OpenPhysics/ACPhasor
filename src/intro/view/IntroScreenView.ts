@@ -2,10 +2,14 @@
  * IntroScreenView.ts
  *
  * View for the Intro screen. A phasor "clock" shows the voltage and current
- * phasors rotating at ω while keeping their fixed phase relationship; two
- * oscilloscope traces below show the actual v(t) and i(t) waveforms. A control
- * panel picks the component and sets its value plus the source voltage and
- * frequency.
+ * phasors rotating at ω while keeping their fixed phase relationship, with the
+ * angle between them drawn as a labelled wedge and a dashed line dropped from
+ * each tip onto the real axis — the projection that *is* the instantaneous value.
+ * A dual-trace oscilloscope below plots those two values as v(t) and i(t) against
+ * their own axes, sharing one playhead with the clock, so the phase difference
+ * shows up twice: as an angle on the dial and as a horizontal offset on the
+ * scope. A control panel picks the component and sets its value plus the source
+ * voltage and frequency.
  */
 import { DerivedProperty, Multilink, Property } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
@@ -22,7 +26,10 @@ import {
   CAPACITANCE_RANGE_F,
   INDUCTANCE_RANGE_H,
   INTRO_CIRCUIT_SIZE,
+  INTRO_DIAL_VIEW_RADIUS,
+  INTRO_SCOPE_SIZE,
   RESISTANCE_RANGE_OHMS,
+  SCOPE_PERIODS_SHOWN,
   SCREEN_VIEW_MARGIN,
 } from "../../ACPhasorConstants.js";
 import type { CircuitElementType } from "../../common/model/Impedance.js";
@@ -37,6 +44,7 @@ import { SimPanel } from "../../common/SimPanel.js";
 import { DEFAULT_TIME_SPEEDS } from "../../common/TimeModel.js";
 import { CircuitDiagramNode } from "../../common/view/CircuitDiagramNode.js";
 import { createElementSymbol } from "../../common/view/CircuitSymbols.js";
+import { PhaseArcNode } from "../../common/view/PhaseArcNode.js";
 import { PhasorDiagramNode } from "../../common/view/PhasorDiagramNode.js";
 import { PhasorNode } from "../../common/view/PhasorNode.js";
 import { SimNumberControl } from "../../common/view/SimNumberControl.js";
@@ -52,15 +60,16 @@ const DIAL_VOLTAGE_ARROW_LENGTH = 0.92;
 // The current arrow is drawn shorter so it stays visible where it coincides
 // with the voltage arrow (a resistor puts them exactly in phase).
 const DIAL_CURRENT_ARROW_LENGTH = 0.62;
-const DIAL_VIEW_RADIUS = 115;
+// The phase wedge sits inside the shorter of the two arrows, so it reads as the
+// angle between them rather than as a ring around the outside.
+const DIAL_PHASE_ARC_RADIUS = 0.38;
 
 // Width of the schematic symbol on each element-picker button.
 const PICKER_SYMBOL_WIDTH = 50;
 
-// Oscilloscope geometry.
-const SCOPE_WIDTH = 600;
-const SCOPE_HEIGHT = 100;
-const SCOPE_TIME_WINDOW = 3; // seconds shown across the width
+// Trace indices into the dual-trace scope.
+const VOLTAGE_TRACE = 0;
+const CURRENT_TRACE = 1;
 
 export class IntroScreenView extends ScreenView {
   private readonly model: IntroModel;
@@ -73,8 +82,7 @@ export class IntroScreenView extends ScreenView {
     valueComparisonStrategy: "equalsFunction",
   });
 
-  private readonly voltageScope: WaveformNode;
-  private readonly currentScope: WaveformNode;
+  private readonly scope: WaveformNode;
   private readonly circuit: CircuitDiagramNode;
 
   public constructor(model: IntroModel, options?: ScreenViewOptions) {
@@ -108,55 +116,67 @@ export class IntroScreenView extends ScreenView {
     // ── Phasor clock ────────────────────────────────────────────────────────
     const diagram = new PhasorDiagramNode({
       modelRadius: DIAL_MODEL_RADIUS,
-      viewRadius: DIAL_VIEW_RADIUS,
+      viewRadius: INTRO_DIAL_VIEW_RADIUS,
       referenceCircleRadius: DIAL_VOLTAGE_ARROW_LENGTH,
     });
+    // The wedge goes on before the arrows so the arrows read over it.
+    diagram.addChild(
+      new PhaseArcNode(
+        new DerivedProperty([this.displayVoltageProperty], (voltage) => voltage.phase),
+        new DerivedProperty([this.displayCurrentProperty], (current) => current.phase),
+        diagram.modelViewTransform,
+        {
+          modelRadius: DIAL_PHASE_ARC_RADIUS,
+          stroke: currentColorProperty,
+        },
+      ),
+    );
+    // The dashed drop from each tip to the real axis lands at that phasor's
+    // instantaneous value — the same number the scope is plotting below.
     diagram.addChild(
       new PhasorNode(this.displayVoltageProperty, diagram.modelViewTransform, {
         fill: ACPhasorColors.textColorProperty,
         labelString: "V",
+        showProjection: "real",
       }),
     );
     diagram.addChild(
       new PhasorNode(this.displayCurrentProperty, diagram.modelViewTransform, {
         fill: currentColorProperty,
         labelString: "I",
+        showProjection: "real",
       }),
     );
     diagram.top = SCREEN_VIEW_MARGIN + 10;
     diagram.left = SCREEN_VIEW_MARGIN + 20;
 
-    // ── Oscilloscope traces ─────────────────────────────────────────────────
-    // The voltage scope keeps a fixed vertical scale (the source can never
-    // exceed it), so the trace's height reads directly as a voltage.
-    this.voltageScope = new WaveformNode({
-      viewWidth: SCOPE_WIDTH,
-      viewHeight: SCOPE_HEIGHT,
-      timeWindow: SCOPE_TIME_WINDOW,
-      maxAmplitude: AC_AMPLITUDE_RANGE_V.max,
-      stroke: ACPhasorColors.textColorProperty,
+    // ── Oscilloscope ────────────────────────────────────────────────────────
+    // One chart, two axes: v(t) against a fixed voltage scale on the left (the
+    // source can never exceed it, so the trace's height reads directly as a
+    // voltage) and i(t) against an auto-scaled current axis on the right (the
+    // current spans decades as |Z| changes). Sharing a time axis is the point —
+    // the phase difference becomes the offset between the two zero crossings.
+    this.scope = new WaveformNode({
+      viewWidth: INTRO_SCOPE_SIZE.width,
+      viewHeight: INTRO_SCOPE_SIZE.height,
       showCursor: true,
-      label: "v(t)",
-      units: "V",
-      showTimeAxisLabels: false, // shared with the current scope directly below
+      traces: [
+        {
+          stroke: ACPhasorColors.textColorProperty,
+          label: "v(t)",
+          units: "V",
+          maxAmplitude: AC_AMPLITUDE_RANGE_V.max,
+        },
+        {
+          stroke: currentColorProperty,
+          label: "i(t)",
+          units: "A",
+          axis: "right",
+          autoScale: true,
+        },
+      ],
     });
-    this.currentScope = new WaveformNode({
-      viewWidth: SCOPE_WIDTH,
-      viewHeight: SCOPE_HEIGHT,
-      timeWindow: SCOPE_TIME_WINDOW,
-      autoScale: true, // current amplitude varies widely with |Z|
-      stroke: currentColorProperty,
-      showCursor: true,
-      label: "i(t)",
-      units: "A",
-    });
-
-    const scopeStack = new VBox({
-      align: "left",
-      spacing: 12,
-      children: [this.voltageScope, this.currentScope],
-    });
-    scopeStack.left = SCREEN_VIEW_MARGIN + 20;
+    this.scope.left = SCREEN_VIEW_MARGIN + 20;
 
     // ── Circuit diagram (pictorial parts, flowing charge, live polarity) ─────
     this.circuit = new CircuitDiagramNode({
@@ -252,12 +272,18 @@ export class IntroScreenView extends ScreenView {
       labels.voltsPatternStringProperty,
       { decimalPlaces: 1, accessibleName: a11y.controls.sourceVoltageStringProperty },
     );
+    // The frequency range spans more than two decades and every resonance in the
+    // sim lives in its bottom half, so this slider is divided by ratio.
     const frequencyControl = new SimNumberControl(
       labels.frequencyStringProperty,
       model.source.frequencyProperty,
       AC_FREQUENCY_RANGE_HZ,
       labels.hertzPatternStringProperty,
-      { decimalPlaces: 1, accessibleName: a11y.controls.frequencyStringProperty },
+      {
+        decimalPlaces: 2,
+        logarithmic: true,
+        accessibleName: a11y.controls.frequencyStringProperty,
+      },
     );
 
     const controlPanel = new SimPanel(
@@ -303,10 +329,10 @@ export class IntroScreenView extends ScreenView {
     readoutPanel.top = controlPanel.bottom + 25;
 
     // The circuit fills the column between the phasor clock and the controls;
-    // the scopes run the full width underneath both.
+    // the scope runs the full width underneath both.
     this.circuit.centerX = (diagram.right + controlPanel.left) / 2;
     this.circuit.top = SCREEN_VIEW_MARGIN + 15;
-    scopeStack.top = Math.max(diagram.bottom, this.circuit.bottom) + 20;
+    this.scope.top = Math.max(diagram.bottom, this.circuit.bottom) + 30;
 
     // ── Time control + reset ────────────────────────────────────────────────
     // TimeControlNode is SceneryStack's built-in: play/pause + step buttons and,
@@ -323,7 +349,6 @@ export class IntroScreenView extends ScreenView {
           listener: () => model.timer.stepForward(1 / 60),
         },
       },
-      centerX: controlPanel.centerX,
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
     });
 
@@ -336,23 +361,36 @@ export class IntroScreenView extends ScreenView {
       right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
     });
+    // The speed radio buttons make the time control wide enough to reach the
+    // reset button, so it is placed off that rather than off the panel above it.
+    timeControl.right = resetAllButton.left - 30;
 
     this.addChild(diagram);
     this.addChild(this.circuit);
-    this.addChild(scopeStack);
+    this.addChild(this.scope);
     this.addChild(controlPanel);
     this.addChild(readoutPanel);
     this.addChild(timeControl);
     this.addChild(resetAllButton);
 
-    // Keep the static scope traces in sync with the model (cursor animates in step()).
+    // Hold a fixed number of cycles on screen. Across the frequency range one
+    // period runs from 0.2 s to 50 s, so a window fixed in seconds would show a
+    // picket fence at one end and a flat line at the other.
+    model.source.frequencyProperty.link((frequency) => {
+      this.scope.setTimeWindow(SCOPE_PERIODS_SHOWN / Math.max(frequency, 1e-6));
+    });
+
+    // Keep the static scope traces in sync with the model (the playhead animates
+    // in step()).
     Multilink.multilink(
       [model.voltagePhasorProperty, model.source.angularFrequencyProperty],
-      (voltage, angularFrequency) => this.voltageScope.setWaveform(voltage.amplitude, angularFrequency, voltage.phase),
+      (voltage, angularFrequency) =>
+        this.scope.setTrace(VOLTAGE_TRACE, voltage.amplitude, angularFrequency, voltage.phase),
     );
     Multilink.multilink(
       [model.currentPhasorProperty, model.source.angularFrequencyProperty],
-      (current, angularFrequency) => this.currentScope.setWaveform(current.amplitude, angularFrequency, current.phase),
+      (current, angularFrequency) =>
+        this.scope.setTrace(CURRENT_TRACE, current.amplitude, angularFrequency, current.phase),
     );
 
     this.addChild(
@@ -382,8 +420,7 @@ export class IntroScreenView extends ScreenView {
     this.displayVoltageProperty.value = new Phasor(DIAL_VOLTAGE_ARROW_LENGTH, voltagePhase + rotation);
     this.displayCurrentProperty.value = new Phasor(DIAL_CURRENT_ARROW_LENGTH, currentPhase + rotation);
 
-    this.voltageScope.setCursorTime(time);
-    this.currentScope.setCursorTime(time);
+    this.scope.setCursorTime(time);
 
     this.circuit.setState(this.model.currentPhasorProperty.value, angularFrequency, time);
   }

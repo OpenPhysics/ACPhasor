@@ -1,32 +1,48 @@
 /**
  * WaveformNode.ts
  *
- * A bamboo oscilloscope trace for one sinusoid v(t) = A·cos(ωt + φ), plotted
- * over a fixed time window. The horizontal axis is time (0 at the left edge,
- * `timeWindow` seconds at the right); the vertical axis is the signal, centered
- * on zero, with labelled ticks and grid lines on both axes so the trace can be
- * read quantitatively rather than as a shape.
+ * A bamboo oscilloscope plotting one or more sinusoids A·cos(ωt + φ) over a
+ * shared time window. The horizontal axis is time (0 at the left edge,
+ * `timeWindow` seconds at the right); each trace is read against one of two
+ * vertical axes, so signals in different units — volts and amps, say — can share
+ * a chart and their phase relationship becomes a horizontal offset you can point
+ * at.
  *
- * Two properties keep the scope steady while the physics changes underneath it:
+ * Three properties keep the scope steady while the physics changes underneath it:
  *
  *  - **Fixed footprint.** The node's layout bounds are frozen at construction
- *    (chart + tick-label gutters), and the trace and cursor are clipped to the
- *    chart rectangle. Amplitude changes therefore never move the node, so a
- *    sibling laid out below one of these never drifts.
- *  - **Quantized vertical scale.** With `autoScale`, the full-scale value snaps
- *    to a 1–2–5 sequence (…, 0.5, 1, 2, 5, 10, …) instead of tracking the
+ *    (chart + tick-label gutters + caption row), and the traces and playhead are
+ *    clipped to the chart rectangle. Amplitude changes therefore never move the
+ *    node, so a sibling laid out below one of these never drifts.
+ *  - **Quantized vertical scale.** With `autoScale`, a trace's full-scale value
+ *    snaps to a 1–2–5 sequence (…, 0.5, 1, 2, 5, 10, …) instead of tracking the
  *    amplitude continuously, so the axis holds still through small changes and
- *    the tick labels always read as round numbers when it does move.
+ *    the tick labels always read as round numbers when it does move. Each of the
+ *    two axes scales independently.
+ *  - **Retunable window.** {@link setTimeWindow} re-spans the time axis, so a
+ *    caller can hold a fixed number of cycles on screen across a frequency range
+ *    that spans decades. The x ticks re-space onto the same 1–2–5 sequence.
  *
- * The trace is imperative: call {@link setWaveform} whenever the phasor or
- * frequency changes, and (optionally) {@link setCursorTime} each animation frame
- * to slide a marker along the curve.
+ * The traces are imperative: call {@link setTrace} (or {@link setWaveform} for a
+ * single-trace scope) whenever a phasor or the frequency changes, and
+ * {@link setCursorTime} each animation frame to slide the playhead along.
  *
  * ── Usage ─────────────────────────────────────────────────────────────────────
  *
+ *   // Single trace — `stroke` / `label` / `units` describe it directly.
  *   const scope = new WaveformNode( { viewWidth: 260, viewHeight: 120, timeWindow: 2,
  *                                     maxAmplitude: 10, units: "V", stroke: color } );
  *   scope.setWaveform( amplitude, angularFrequency, phase );
+ *
+ *   // Dual trace against two axes — volts on the left, amps on the right.
+ *   const scope = new WaveformNode( {
+ *     traces: [
+ *       { stroke: voltageColor, label: "v(t)", units: "V", maxAmplitude: 10 },
+ *       { stroke: currentColor, label: "i(t)", units: "A", axis: "right", autoScale: true },
+ *     ],
+ *   } );
+ *   scope.setTrace( 0, voltage.amplitude, omega, voltage.phase );
+ *   scope.setTrace( 1, current.amplitude, omega, current.phase );
  *   // in step(): scope.setCursorTime( model.timer.timeProperty.value );
  */
 
@@ -42,18 +58,44 @@ import {
 import { Bounds2, Range, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
 import { Orientation } from "scenerystack/phet-core";
-import { Circle, type Font, Node, type TColor, Text } from "scenerystack/scenery";
+import { Circle, type Font, HBox, Line, Node, type TColor, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
 
-/** Width reserved to the left of the chart for the vertical tick labels (px). */
+/** Width reserved outside the chart for a set of vertical tick labels (px). */
 const Y_LABEL_GUTTER = 34;
 
 /** Height reserved below the chart for the time tick labels and axis caption (px). */
 const TIME_AXIS_GUTTER = 28;
 
-/** Height reserved above the chart for the label / peak-value captions (px). */
+/** Height reserved above the chart for the per-trace caption row (px). */
 const CAPTION_GUTTER = 18;
+
+/** Which vertical axis a trace is read against. */
+export type WaveformAxis = "left" | "right";
+
+/** One sinusoid on the scope, with the caption and scaling that go with it. */
+export type WaveformTraceOptions = {
+  /** Trace color; the caption and playhead dot follow it. */
+  stroke: TColor;
+  /** Caption for this trace (e.g. "v(t)"). */
+  label: string;
+  /** Unit symbol shown with the trace's peak value ("V", "A", …). */
+  units?: string | null;
+  /** Vertical axis this trace is plotted against. */
+  axis?: WaveformAxis;
+  /** Signal amplitude that reaches the top/bottom edge, when not auto-scaling. */
+  maxAmplitude?: number;
+  /**
+   * When true, this trace's axis rescales to the incoming amplitude so the trace
+   * always fills the plot, snapping to a 1–2–5 sequence rather than following the
+   * amplitude exactly. Use for signals whose amplitude varies widely (e.g.
+   * current through a reactance).
+   */
+  autoScale?: boolean;
+  /** Smallest full-scale value `autoScale` may choose; keeps tiny signals from filling the plot. */
+  minimumFullScale?: number;
+};
 
 type SelfOptions = {
   /** Plot width in view pixels (the full time window). */
@@ -62,94 +104,118 @@ type SelfOptions = {
   viewHeight?: number;
   /** Duration in seconds spanned by the plot width. */
   timeWindow?: number;
-  /** Signal amplitude that reaches the top/bottom edge of the plot. */
-  maxAmplitude?: number;
   /** Number of sample points across the width (higher = smoother). */
   sampleCount?: number;
-  /** Trace color. */
-  stroke?: TColor;
+  /**
+   * The traces to plot. When omitted, a single left-axis trace is built from the
+   * `stroke` / `label` / `units` / `maxAmplitude` / `autoScale` options below.
+   */
+  traces?: WaveformTraceOptions[];
   /** Axis color. */
   axisColor?: TColor;
   /** Grid line color. */
   gridColor?: TColor;
   /** Tick-label and caption color. */
   labelColor?: TColor;
-  /** Whether to show a moving cursor dot (see {@link setCursorTime}). */
+  /** Whether to show a playhead: a vertical line plus a dot on each trace. */
   showCursor?: boolean;
-  /**
-   * When true, {@link setWaveform} rescales the vertical axis to the incoming
-   * amplitude so the trace always fills the plot. The scale snaps to a 1–2–5
-   * sequence rather than following the amplitude exactly. Use for signals whose
-   * amplitude varies widely (e.g. current through a reactance).
-   */
-  autoScale?: boolean;
-  /** Smallest full-scale value `autoScale` may choose; keeps tiny signals from filling the plot. */
-  minimumFullScale?: number;
-  /** Unit symbol for the vertical axis ("V", "A", …); appended to the peak caption. */
-  units?: string | null;
-  /** Caption drawn at the chart's top-left corner (e.g. "v(t)"); null hides it. */
-  label?: string | null;
-  /** Whether to caption the trace's peak value at the chart's top-right corner. */
+  /** Whether to caption each trace's peak value alongside its label. */
   showPeakValue?: boolean;
   /**
-   * Whether to label the time axis. Turn off for the upper scope of a stack
-   * that shares one time axis with the scope below it.
+   * Whether to label the time axis. Turn off for the upper scope of a stack that
+   * shares one time axis with the scope below it.
    */
   showTimeAxisLabels?: boolean;
   /** Caption under the time axis, shown with the time tick labels. */
   timeAxisLabel?: string;
   /** Font for tick labels. */
   labelFont?: Font;
-  /** Font for the corner captions. */
+  /** Font for the caption row. */
   captionFont?: Font;
+
+  // ── Single-trace shorthand (ignored when `traces` is given) ─────────────────
+  /** Trace color. */
+  stroke?: TColor;
+  /** Caption drawn at the chart's top-left corner (e.g. "v(t)"); null hides it. */
+  label?: string | null;
+  /** Unit symbol for the vertical axis ("V", "A", …); appended to the peak caption. */
+  units?: string | null;
+  /** Signal amplitude that reaches the top/bottom edge of the plot. */
+  maxAmplitude?: number;
+  /** See {@link WaveformTraceOptions.autoScale}. */
+  autoScale?: boolean;
+  /** See {@link WaveformTraceOptions.minimumFullScale}. */
+  minimumFullScale?: number;
+};
+
+/**
+ * One vertical axis: its transform, the grid and ticks that read against it, and
+ * the full-scale value they are spaced by.
+ */
+type VerticalAxis = {
+  chartTransform: ChartTransform;
+  gridLineSet: GridLineSet | null;
+  tickMarkSet: TickMarkSet;
+  tickLabelSet: TickLabelSet;
+  /**
+   * Signal value reaching the top/bottom edge; mutable when a trace auto-scales.
+   * Boxed because the tick-label factory needs to read whatever scale is in force
+   * when a label is built, and it runs during the axis's own construction.
+   */
+  scale: { fullScale: number };
+  /** Whether any trace on this axis auto-scales. */
+  autoScale: boolean;
+  minimumFullScale: number;
+};
+
+/** One plotted sinusoid and the caption that reports it. */
+type Trace = {
+  linePlot: LinePlot;
+  axis: VerticalAxis;
+  cursorDot: Circle | null;
+  peakText: Text | null;
+  units: string | null;
+  amplitude: number;
+  angularFrequency: number;
+  phase: number;
 };
 
 export class WaveformNode extends Node {
-  private readonly chartTransform: ChartTransform;
-  private readonly timeWindow: number;
+  /** Time axis, shared by every trace. Also owns the x grid and ticks. */
+  private readonly timeAxisTransform: ChartTransform;
+  private readonly xGridLineSet: GridLineSet;
+  private readonly xTickMarkSet: TickMarkSet;
+  private readonly xTickLabelSet: TickLabelSet | null;
+
+  private readonly leftAxis: VerticalAxis;
+  private readonly rightAxis: VerticalAxis | null;
+  private readonly traces: Trace[];
+
+  private readonly playhead: Line | null;
   private readonly sampleCount: number;
-  private readonly autoScale: boolean;
-  private readonly minimumFullScale: number;
-  private readonly units: string | null;
-
-  // Signal value that reaches the top/bottom edge. Mutable when autoScale is on.
-  private fullScale: number;
-
-  private readonly linePlot: LinePlot;
-  private readonly cursorDot: Circle | null;
-  private readonly peakText: Text | null;
-
-  // Vertical grid / tick sets, respaced whenever the full scale changes.
-  private readonly yGridLineSet: GridLineSet;
-  private readonly yTickMarkSet: TickMarkSet;
-  private readonly yTickLabelSet: TickLabelSet;
-
-  // Current waveform parameters, used by both the trace and the cursor.
-  private amplitude = 0;
-  private angularFrequency = 0;
-  private phase = 0;
+  private timeWindow: number;
 
   public constructor(providedOptions?: SelfOptions) {
     const options = {
       viewWidth: 260,
       viewHeight: 120,
       timeWindow: 2,
-      maxAmplitude: 10,
       sampleCount: 200,
-      stroke: ACPhasorColors.accentColorProperty as TColor,
       axisColor: ACPhasorColors.textColorProperty as TColor,
       gridColor: ACPhasorColors.panelBorderColorProperty as TColor,
       labelColor: ACPhasorColors.textColorProperty as TColor,
       showCursor: false,
-      autoScale: false,
-      minimumFullScale: 0,
-      units: null as string | null,
-      label: null as string | null,
       showPeakValue: true,
       showTimeAxisLabels: true,
       timeAxisLabel: "t (s)",
       labelFont: new PhetFont(10),
       captionFont: new PhetFont(12),
+      stroke: ACPhasorColors.accentColorProperty as TColor,
+      label: null as string | null,
+      units: null as string | null,
+      maxAmplitude: 10,
+      autoScale: false,
+      minimumFullScale: 0,
       ...providedOptions,
     };
 
@@ -157,84 +223,124 @@ export class WaveformNode extends Node {
 
     this.timeWindow = options.timeWindow;
     this.sampleCount = Math.max(2, Math.floor(options.sampleCount));
-    this.autoScale = options.autoScale;
-    this.minimumFullScale = options.minimumFullScale;
-    this.units = options.units;
-    this.fullScale = options.maxAmplitude;
 
-    this.chartTransform = new ChartTransform({
+    // A scope built the old way — one stroke, one label, one scale — is just a
+    // one-element trace list, so the two constructions share everything below.
+    const traceOptions: WaveformTraceOptions[] = options.traces ?? [
+      {
+        stroke: options.stroke,
+        label: options.label ?? "",
+        units: options.units,
+        maxAmplitude: options.maxAmplitude,
+        autoScale: options.autoScale,
+        minimumFullScale: options.minimumFullScale,
+      },
+    ];
+    const usesRightAxis = traceOptions.some((trace) => trace.axis === "right");
+
+    this.timeAxisTransform = new ChartTransform({
       viewWidth: options.viewWidth,
       viewHeight: options.viewHeight,
-      modelXRange: new Range(0, options.timeWindow),
-      modelYRange: new Range(-this.fullScale, this.fullScale),
+      modelXRange: new Range(0, this.timeWindow),
+      modelYRange: new Range(-1, 1),
     });
 
-    // Ticks every half of full scale: labels land on -M, -M/2, 0, M/2, M.
-    const yTickSpacing = this.fullScale / 2;
-    const xTickSpacing = niceStep(options.timeWindow / 6);
+    // Build one vertical axis per side. Each takes its scale from the traces
+    // assigned to it, so volts and amps never have to share a number line.
+    const createVerticalAxis = (side: WaveformAxis): VerticalAxis => {
+      const own = traceOptions.filter((trace) => (trace.axis ?? "left") === side);
+      const fullScale = own.length > 0 ? Math.max(...own.map((trace) => trace.maxAmplitude ?? 10)) : 1;
+      const scale = { fullScale: fullScale };
+      const chartTransform = new ChartTransform({
+        viewWidth: options.viewWidth,
+        viewHeight: options.viewHeight,
+        modelXRange: new Range(0, this.timeWindow),
+        modelYRange: new Range(-fullScale, fullScale),
+      });
+      return {
+        chartTransform: chartTransform,
+        // Only the left axis draws grid lines; a second set would double them up.
+        gridLineSet:
+          side === "left"
+            ? new GridLineSet(chartTransform, Orientation.VERTICAL, fullScale / 2, {
+                stroke: options.gridColor,
+                lineWidth: 0.5,
+              })
+            : null,
+        tickMarkSet: new TickMarkSet(chartTransform, Orientation.VERTICAL, fullScale / 2, {
+          edge: side === "left" ? "min" : "max",
+          extent: 4,
+          stroke: options.axisColor,
+        }),
+        tickLabelSet: new TickLabelSet(chartTransform, Orientation.VERTICAL, fullScale / 2, {
+          edge: side === "left" ? "min" : "max",
+          extent: 6,
+          // Formatted against whatever scale is in force when the label is
+          // built, which is why the scale is read out of a box: this factory is
+          // called from the TickLabelSet constructor a few lines above.
+          createLabel: (value: number) =>
+            new Text(formatTickValue(value, scale.fullScale / 2), {
+              font: options.labelFont,
+              // Tick labels are the only cue to which trace a right-hand axis
+              // belongs to, so they carry that trace's color.
+              fill: side === "left" ? options.labelColor : (own[0]?.stroke ?? options.labelColor),
+            }),
+        }),
+        scale: scale,
+        autoScale: own.some((trace) => trace.autoScale === true),
+        minimumFullScale: own.length > 0 ? Math.max(...own.map((trace) => trace.minimumFullScale ?? 0)) : 0,
+      };
+    };
 
-    const chartRectangle = new ChartRectangle(this.chartTransform, {
+    this.leftAxis = createVerticalAxis("left");
+    this.rightAxis = usesRightAxis ? createVerticalAxis("right") : null;
+
+    const xTickSpacing = niceStep(this.timeWindow / 6);
+    const chartRectangle = new ChartRectangle(this.timeAxisTransform, {
       stroke: options.gridColor,
       lineWidth: 1,
     });
-
-    this.yGridLineSet = new GridLineSet(this.chartTransform, Orientation.VERTICAL, yTickSpacing, {
+    this.xGridLineSet = new GridLineSet(this.timeAxisTransform, Orientation.HORIZONTAL, xTickSpacing, {
       stroke: options.gridColor,
       lineWidth: 0.5,
     });
-    this.yTickMarkSet = new TickMarkSet(this.chartTransform, Orientation.VERTICAL, yTickSpacing, {
+    // "min" is the bottom edge: model y increases up the screen.
+    this.xTickMarkSet = new TickMarkSet(this.timeAxisTransform, Orientation.HORIZONTAL, xTickSpacing, {
       edge: "min",
       extent: 4,
       stroke: options.axisColor,
-    });
-    this.yTickLabelSet = new TickLabelSet(this.chartTransform, Orientation.VERTICAL, yTickSpacing, {
-      edge: "min",
-      extent: 6,
-      createLabel: (value: number) =>
-        new Text(formatTickValue(value, this.fullScale / 2), {
-          font: options.labelFont,
-          fill: options.labelColor,
-        }),
     });
 
     const chart = new Node({
       children: [
         chartRectangle,
-        new GridLineSet(this.chartTransform, Orientation.HORIZONTAL, xTickSpacing, {
-          stroke: options.gridColor,
-          lineWidth: 0.5,
-        }),
-        this.yGridLineSet,
-        // Zero line: the time axis the trace swings about.
-        new AxisLine(this.chartTransform, Orientation.HORIZONTAL, {
+        this.xGridLineSet,
+        ...(this.leftAxis.gridLineSet ? [this.leftAxis.gridLineSet] : []),
+        // Zero line: the time axis the traces swing about.
+        new AxisLine(this.timeAxisTransform, Orientation.HORIZONTAL, {
           stroke: options.axisColor,
           lineWidth: 1,
         }),
-        // "min" is the bottom edge: model y increases up the screen.
-        new TickMarkSet(this.chartTransform, Orientation.HORIZONTAL, xTickSpacing, {
-          edge: "min",
-          extent: 4,
-          stroke: options.axisColor,
-        }),
-        this.yTickMarkSet,
-        this.yTickLabelSet,
+        this.xTickMarkSet,
+        this.leftAxis.tickMarkSet,
+        this.leftAxis.tickLabelSet,
+        ...(this.rightAxis ? [this.rightAxis.tickMarkSet, this.rightAxis.tickLabelSet] : []),
       ],
     });
 
-    // The time axis is labelled only where it is read: a stack of scopes over
-    // the same window labels the bottom one and lets the others sit closer.
+    // The time axis is labelled only where it is read: a stack of scopes over the
+    // same window labels the bottom one and lets the others sit closer.
     if (options.showTimeAxisLabels) {
-      chart.addChild(
-        new TickLabelSet(this.chartTransform, Orientation.HORIZONTAL, xTickSpacing, {
-          edge: "min",
-          extent: 6,
-          createLabel: (value: number) =>
-            new Text(formatTickValue(value, xTickSpacing), {
-              font: options.labelFont,
-              fill: options.labelColor,
-            }),
-        }),
-      );
+      this.xTickLabelSet = new TickLabelSet(this.timeAxisTransform, Orientation.HORIZONTAL, xTickSpacing, {
+        edge: "min",
+        extent: 6,
+        createLabel: (value: number) =>
+          new Text(formatTickValue(value, this.xTickSpacing), {
+            font: options.labelFont,
+            fill: options.labelColor,
+          }),
+      });
+      chart.addChild(this.xTickLabelSet);
       chart.addChild(
         new Text(options.timeAxisLabel, {
           font: options.labelFont,
@@ -243,136 +349,252 @@ export class WaveformNode extends Node {
           top: options.viewHeight + 16,
         }),
       );
+    } else {
+      this.xTickLabelSet = null;
     }
 
-    // Trace and cursor live in a clipped layer, so an over-range signal is cut
+    // Traces and playhead live in a clipped layer, so an over-range signal is cut
     // off at the chart border instead of growing the node.
-    this.linePlot = new LinePlot(this.chartTransform, [], {
-      stroke: options.stroke,
-      lineWidth: 2,
-    });
-    this.cursorDot = options.showCursor
-      ? new Circle(4, { fill: options.stroke, center: this.chartTransform.modelToViewXY(0, 0) })
-      : null;
     const clippedLayer = new Node({
       // Dilated by the trace's half-width so a peak that sits exactly on full
       // scale keeps its full stroke instead of being shaved by the border.
       clipArea: Shape.bounds(chartRectangle.getShape().bounds.dilated(1)),
-      children: this.cursorDot ? [this.linePlot, this.cursorDot] : [this.linePlot],
     });
+
+    this.traces = traceOptions.map((trace) => {
+      const axis = (trace.axis ?? "left") === "right" && this.rightAxis ? this.rightAxis : this.leftAxis;
+      const linePlot = new LinePlot(axis.chartTransform, [], {
+        stroke: trace.stroke,
+        lineWidth: 2,
+      });
+      clippedLayer.addChild(linePlot);
+      return {
+        linePlot: linePlot,
+        axis: axis,
+        cursorDot: options.showCursor
+          ? new Circle(4, { fill: trace.stroke, center: axis.chartTransform.modelToViewXY(0, 0) })
+          : null,
+        peakText: options.showPeakValue ? new Text("", { font: options.captionFont, fill: trace.stroke }) : null,
+        units: trace.units ?? null,
+        amplitude: 0,
+        angularFrequency: 0,
+        phase: 0,
+      };
+    });
+
+    // The playhead sits under the dots so a dot is never bisected by its own line.
+    this.playhead = options.showCursor
+      ? new Line(0, 0, 0, options.viewHeight, {
+          stroke: options.labelColor,
+          lineWidth: 1,
+          lineDash: [3, 3],
+        })
+      : null;
+    if (this.playhead) {
+      clippedLayer.addChild(this.playhead);
+    }
+    for (const trace of this.traces) {
+      if (trace.cursorDot) {
+        clippedLayer.addChild(trace.cursorDot);
+      }
+    }
 
     this.addChild(chart);
     this.addChild(clippedLayer);
 
-    // Captions above the chart: what is plotted (left) and its peak value (right).
-    if (options.label !== null) {
+    // Caption row above the chart: one "label peak units" group per trace, each
+    // drawn in its own trace color, so a dual-trace scope needs no legend below
+    // it. Each group is pinned to its own slot along the width and grows
+    // rightward from there, so a peak value gaining a digit never nudges its
+    // neighbours.
+    traceOptions.forEach((traceOption, index) => {
+      const tokens: Node[] = [];
+      if (traceOption.label !== "") {
+        tokens.push(new Text(traceOption.label, { font: options.captionFont, fill: traceOption.stroke }));
+      }
+      const peakText = this.traces[index]?.peakText;
+      if (peakText) {
+        tokens.push(peakText);
+      }
+      if (tokens.length === 0) {
+        return;
+      }
       this.addChild(
-        new Text(options.label, {
-          font: options.captionFont,
-          fill: options.labelColor,
-          leftBottom: new Vector2(0, -4),
+        new HBox({
+          spacing: 6,
+          align: "bottom",
+          children: tokens,
+          leftBottom: new Vector2((index * options.viewWidth) / traceOptions.length, -3),
         }),
       );
-    }
-    this.peakText = options.showPeakValue
-      ? new Text("", {
-          font: options.captionFont,
-          fill: options.labelColor,
-        })
-      : null;
-    if (this.peakText) {
-      this.addChild(this.peakText);
-    }
+    });
 
-    // Freeze the footprint: tick-label text and trace amplitude both change at
-    // run time, and neither may be allowed to move this node or its siblings.
+    // Freeze the footprint: tick-label text, caption text, and trace amplitude
+    // all change at run time, and none of them may move this node or its siblings.
     this.localBounds = new Bounds2(
       -Y_LABEL_GUTTER,
       -CAPTION_GUTTER,
-      options.viewWidth,
+      options.viewWidth + (this.rightAxis ? Y_LABEL_GUTTER : 0),
       options.viewHeight + (options.showTimeAxisLabels ? TIME_AXIS_GUTTER : 4),
     );
 
-    this.updateTrace();
-    this.updatePeakText();
+    for (const trace of this.traces) {
+      this.updateTrace(trace);
+      this.updatePeakText(trace);
+    }
   }
 
-  private valueAt(time: number): number {
-    return this.amplitude * Math.cos(this.angularFrequency * time + this.phase);
+  /** Time-axis tick spacing for the present window, on the 1–2–5 sequence. */
+  private get xTickSpacing(): number {
+    return niceStep(this.timeWindow / 6);
   }
 
-  private updateTrace(): void {
+  private valueAt(trace: Trace, time: number): number {
+    return trace.amplitude * Math.cos(trace.angularFrequency * time + trace.phase);
+  }
+
+  private updateTrace(trace: Trace): void {
     const dataSet: Vector2[] = [];
     for (let i = 0; i < this.sampleCount; i++) {
       const time = (i / (this.sampleCount - 1)) * this.timeWindow;
-      dataSet.push(new Vector2(time, this.valueAt(time)));
+      dataSet.push(new Vector2(time, this.valueAt(trace, time)));
     }
-    this.linePlot.setDataSet(dataSet);
+    trace.linePlot.setDataSet(dataSet);
   }
 
-  /** Re-space the vertical grid, ticks and labels after a full-scale change. */
-  private updateVerticalScale(): void {
-    this.chartTransform.setModelYRange(new Range(-this.fullScale, this.fullScale));
-    const spacing = this.fullScale / 2;
-    this.yGridLineSet.setSpacing(spacing);
-    this.yTickMarkSet.setSpacing(spacing);
-    this.yTickLabelSet.setSpacing(spacing);
+  /** Re-space one axis's grid, ticks and labels after a full-scale change. */
+  private updateVerticalScale(axis: VerticalAxis): void {
+    axis.chartTransform.setModelYRange(new Range(-axis.scale.fullScale, axis.scale.fullScale));
+    const spacing = axis.scale.fullScale / 2;
+    axis.gridLineSet?.setSpacing(spacing);
+    axis.tickMarkSet.setSpacing(spacing);
+    axis.tickLabelSet.setSpacing(spacing);
     // Labels are cached by value; the cache must be dropped when the scale (and
     // therefore the number of decimals) changes.
-    this.yTickLabelSet.invalidateTickLabelSet();
+    axis.tickLabelSet.invalidateTickLabelSet();
   }
 
-  private updatePeakText(): void {
-    if (!this.peakText) {
+  private updatePeakText(trace: Trace): void {
+    if (!trace.peakText) {
       return;
     }
-    const value = formatTickValue(Math.abs(this.amplitude), this.fullScale / 2);
-    this.peakText.string = this.units === null ? value : `${value} ${this.units}`;
-    this.peakText.rightBottom = new Vector2(this.chartTransform.viewWidth, -3);
+    const value = formatTickValue(Math.abs(trace.amplitude), trace.axis.scale.fullScale / 2);
+    trace.peakText.string = trace.units === null ? value : `${value} ${trace.units}`;
   }
 
-  /** Set the sinusoid to plot: A·cos(ωt + φ). Redraws the trace immediately. */
-  public setWaveform(amplitude: number, angularFrequency: number, phase: number): void {
-    this.amplitude = amplitude;
-    this.angularFrequency = angularFrequency;
-    this.phase = phase;
-
-    if (this.autoScale) {
-      const scale = Math.max(niceStep(Math.abs(amplitude)), this.minimumFullScale);
-      if (scale !== this.fullScale) {
-        this.fullScale = scale;
-        this.updateVerticalScale();
-      }
+  /** Move one trace's playhead dot to its value at `time`. */
+  private updateCursorDot(trace: Trace, time: number): void {
+    if (trace.cursorDot) {
+      trace.cursorDot.center = trace.axis.chartTransform.modelToViewXY(time, this.valueAt(trace, time));
     }
+  }
 
-    this.updateTrace();
-    this.updatePeakText();
-
-    // Keep the cursor consistent with the new curve at its current position.
-    if (this.cursorDot) {
-      const time = this.chartTransform.viewToModelX(this.cursorDot.centerX);
-      this.cursorDot.center = this.chartTransform.modelToViewXY(time, this.valueAt(time));
-    }
+  /** The playhead's present time, or 0 when there is no playhead. */
+  private get cursorTime(): number {
+    return this.playhead ? this.timeAxisTransform.viewToModelX(this.playhead.x1) : 0;
   }
 
   /**
-   * Slide the cursor dot to the point on the curve at the given absolute time.
-   * The time is wrapped into the visible window so the marker cycles across it.
-   * No-op unless the node was created with `showCursor: true`.
+   * Set trace `index` to the sinusoid A·cos(ωt + φ). Redraws it immediately, and
+   * rescales its axis when that axis auto-scales.
+   */
+  public setTrace(index: number, amplitude: number, angularFrequency: number, phase: number): void {
+    const trace = this.traces[index];
+    if (!trace) {
+      return;
+    }
+    trace.amplitude = amplitude;
+    trace.angularFrequency = angularFrequency;
+    trace.phase = phase;
+
+    if (trace.axis.autoScale) {
+      // An auto-scaling axis follows the largest of the traces on it, so two
+      // signals sharing an axis stay comparable.
+      const peak = Math.max(
+        ...this.traces.filter((other) => other.axis === trace.axis).map((other) => Math.abs(other.amplitude)),
+      );
+      const scale = Math.max(niceStep(peak), trace.axis.minimumFullScale);
+      if (scale !== trace.axis.scale.fullScale) {
+        trace.axis.scale.fullScale = scale;
+        this.updateVerticalScale(trace.axis);
+        // Every trace on the rescaled axis needs its caption re-rounded.
+        for (const other of this.traces) {
+          if (other.axis === trace.axis) {
+            this.updatePeakText(other);
+          }
+        }
+      }
+    }
+
+    this.updateTrace(trace);
+    this.updatePeakText(trace);
+    // Keep the playhead dot consistent with the new curve at its position.
+    this.updateCursorDot(trace, this.cursorTime);
+  }
+
+  /**
+   * Set the sinusoid to plot on a single-trace scope: A·cos(ωt + φ). Sugar for
+   * `setTrace( 0, … )`.
+   */
+  public setWaveform(amplitude: number, angularFrequency: number, phase: number): void {
+    this.setTrace(0, amplitude, angularFrequency, phase);
+  }
+
+  /**
+   * Re-span the time axis. Use it to hold a fixed number of cycles on screen as
+   * the frequency changes: a window fixed in seconds shows a flat line at the
+   * bottom of a decades-wide frequency range and a picket fence at the top.
+   *
+   * The tick spacing re-snaps to the 1–2–5 sequence, so the labels stay round.
+   */
+  public setTimeWindow(seconds: number): void {
+    if (!(seconds > 0 && Number.isFinite(seconds)) || seconds === this.timeWindow) {
+      return;
+    }
+    // The playhead is a position in the window, so hold it where it sits
+    // proportionally rather than letting it jump when the span changes.
+    const cursorFraction = this.timeWindow > 0 ? this.cursorTime / this.timeWindow : 0;
+
+    this.timeWindow = seconds;
+    const range = new Range(0, seconds);
+    this.timeAxisTransform.setModelXRange(range);
+    this.leftAxis.chartTransform.setModelXRange(range);
+    this.rightAxis?.chartTransform.setModelXRange(range);
+
+    const spacing = this.xTickSpacing;
+    this.xGridLineSet.setSpacing(spacing);
+    this.xTickMarkSet.setSpacing(spacing);
+    this.xTickLabelSet?.setSpacing(spacing);
+    this.xTickLabelSet?.invalidateTickLabelSet();
+
+    for (const trace of this.traces) {
+      this.updateTrace(trace);
+    }
+    this.setCursorTime(cursorFraction * seconds);
+  }
+
+  /**
+   * Slide the playhead to the given absolute time, carrying every trace's dot
+   * with it. The time is wrapped into the visible window so the marker cycles
+   * across it. No-op unless the node was created with `showCursor: true`.
    */
   public setCursorTime(time: number): void {
-    if (!this.cursorDot) {
+    if (!this.playhead) {
       return;
     }
     const wrapped = ((time % this.timeWindow) + this.timeWindow) % this.timeWindow;
-    this.cursorDot.center = this.chartTransform.modelToViewXY(wrapped, this.valueAt(wrapped));
+    const x = this.timeAxisTransform.modelToViewX(wrapped);
+    this.playhead.setLine(x, 0, x, this.timeAxisTransform.viewHeight);
+    for (const trace of this.traces) {
+      this.updateCursorDot(trace, wrapped);
+    }
   }
 }
 
 /**
  * Round a positive value up to the next entry of the 1–2–5 sequence
- * (…, 0.2, 0.5, 1, 2, 5, 10, …). Used both for the auto-scaled full scale and
- * for tick spacing, so axis labels are always round numbers.
+ * (…, 0.2, 0.5, 1, 2, 5, 10, …). Used both for auto-scaled full scales and for
+ * tick spacing, so axis labels are always round numbers.
  */
 function niceStep(value: number): number {
   if (!(value > 0 && Number.isFinite(value))) {

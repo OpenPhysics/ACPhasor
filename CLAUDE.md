@@ -16,8 +16,8 @@ Forked from `TemplateSingleSim`.
 | `src/ACPhasorConstants.ts` | Named numeric constants (layout px, physics SI units) |
 | `src/ACPhasorNamespace.ts` | Namespace for color property names |
 | `src/i18n/StringManager.ts` | Singleton localized string accessor |
-| `src/intro/` | Screen 1 — single element: pick R/L/C, rotating V/I phasor clock + v(t)/i(t) scopes |
-| `src/series-rlc/` | Screen 2 — series RLC: normalized voltage-triangle phasor diagram + Z/reactance/phase readouts |
+| `src/intro/` | Screen 1 — single element: pick R/L/C, rotating V/I phasor clock with phase arc + projections, dual-trace v(t)/i(t) scope |
+| `src/series-rlc/` | Screen 2 — series RLC: rotating voltage triangle + static impedance triangle (tip-to-tail checkbox), scope, resonance callout |
 | `src/resonance/` | Screen 3 — resonance & frequency sweep: adapts Resonance-sim driven-oscillator math (stub) |
 | `src/power/` | Screen 4 — power in AC circuits: p(t)=v·i, real/reactive power, power factor (stub) |
 | `src/common/ACPhasorScreenIcons.ts` | Home / nav icons for all four screens |
@@ -27,16 +27,18 @@ Forked from `TemplateSingleSim`.
 | `src/common/model/Phasor.ts` | Immutable AC phasor value object (amplitude/phase over dot `Complex`) |
 | `src/common/model/Impedance.ts` | R/L/C frequency-domain impedances + series & resonance helpers |
 | `src/common/model/ACSourceModel.ts` | Composable sinusoidal-source model (amplitude, frequency, ω, voltage phasor) |
-| `src/common/view/PhasorNode.ts` | Arrow that tracks a `Property<Phasor>` on a `ModelViewTransform2` |
+| `src/common/view/PhasorNode.ts` | Arrow that tracks a `Property<Phasor>`; optional free `tailProperty` and dashed axis projection |
+| `src/common/view/PhasorChainNode.ts` | An ordered set of phasors drawn head-to-tail or from a common origin, switched by a Property |
+| `src/common/view/PhaseArcNode.ts` | The labelled wedge between two angle Properties |
 | `src/common/view/PhasorDiagramNode.ts` | Complex-plane backdrop (axes/grid) that supplies the phasor transform |
-| `src/common/view/WaveformNode.ts` | Bamboo oscilloscope for one sinusoid v(t)=A·cos(ωt+φ): labelled axes, frozen footprint, quantized autoScale |
-| `src/common/view/SimNumberControl.ts` | Pre-themed `NumberControl` (dark-panel title + light value badge + units pattern) |
+| `src/common/view/WaveformNode.ts` | Bamboo oscilloscope: one or more sinusoids against two independent y-axes, shared playhead, frozen footprint, quantized autoScale, retunable time window |
+| `src/common/view/SimNumberControl.ts` | Pre-themed `NumberControl` (dark-panel title + light value badge + units pattern); `logarithmic` for decade-spanning ranges |
 | `src/common/view/SimReadout.ts` | One "label + value badge" row for info panels |
 | `src/common/view/CircuitDiagramNode.ts` | Pictorial single-loop circuit: wire, source, element slots, flowing charge |
 | `src/common/view/CircuitElementNode.ts` | Base class for the pictorial elements (terminal convention) |
 | `src/common/view/CircuitSymbols.ts` | Schematic R / L / C glyphs shared by the element picker and the screen icons |
-| `src/common/view/ResistorNode.ts` | Ceramic resistor: color bands encode R, heat glow follows i²R |
-| `src/common/view/InductorNode.ts` | Copper coil on a ferrite core; windings track L, flux arrows and ± marks show v = L·di/dt |
+| `src/common/view/ResistorNode.ts` | Ceramic resistor: color bands encode R, two-layer heat glow runs cold → red → orange-hot with i²R |
+| `src/common/view/InductorNode.ts` | Copper coil on a ferrite core; windings track L, core arrows + external field loops + ± marks show v = L·di/dt |
 | `src/common/view/CapacitorNode.ts` | Capacitor-Lab-style plates: perspective plates, plate charges, E-field arrows |
 | `src/common/view/ACSourceNode.ts` | AC source body with live terminal polarity marks |
 | `scripts/generate-icons.ts` | PNG icons from `public/icons/icon.svg` |
@@ -117,24 +119,65 @@ these rather than re-deriving the complex math:
   derived `angularFrequencyProperty` (2πf) and `voltagePhasorProperty`. Compose it into
   a screen model (`public readonly source = new ACSourceModel()`), don't extend it.
 - **`PhasorDiagramNode`** builds the complex-plane transform; pass its
-  `modelViewTransform` to each **`PhasorNode`** you `addChild`. **`WaveformNode`** is an
-  imperative scope — call `setWaveform(A, ω, φ)` on change and `setCursorTime(t)` in `step`.
+  `modelViewTransform` to each **`PhasorNode`**, **`PhasorChainNode`** or
+  **`PhaseArcNode`** you `addChild`. **`WaveformNode`** is an imperative scope — call
+  `setTrace(i, A, ω, φ)` on change and `setCursorTime(t)` in `step`.
 
-`WaveformNode` is a bamboo chart with two rules that keep a scope readable while the
-physics moves under it, and both should be preserved in new scopes:
+#### Drawing a sum: `PhasorChainNode`
 
-- **Its layout bounds are frozen at construction** and the trace is clipped to the chart
-  rectangle, so a changing amplitude or tick label can never move the node — nor anything
-  laid out below it. Stack scopes freely in a `VBox`.
+Where a set of phasors is known to add up to something — V_R + V_L + V_C = V, or
+R + jX = Z — draw it with `PhasorChainNode` rather than as loose `PhasorNode`s. Given a
+`tipToTailProperty` it switches between the two arrangements that make different things
+obvious, and one checkbox can then drive several diagrams at once:
+
+```typescript
+new PhasorChainNode(
+  [ { property: displayVR, fill: resistorColor,  label: "V<sub>R</sub>" },
+    { property: displayVL, fill: inductorColor,  label: "V<sub>L</sub>" },
+    { property: displayVC, fill: capacitorColor, label: "V<sub>C</sub>" } ],
+  diagram.modelViewTransform,
+  { tipToTailProperty, resultant: { property: displayV, fill: textColor, label: "V" } },
+);
+```
+
+Labels are `RichText`, so subscripts work. Normalize against the *chain's* extent, not
+the longest single phasor, and take the maximum over both arrangements — otherwise the
+figure resizes when the checkbox is ticked.
+
+`PhasorNode` gains two options worth knowing: `tailProperty` (what the chain uses) and
+`showProjection: "real"`, the dashed drop from the tip onto an axis whose foot is the
+signal's instantaneous value — the construction that ties a rotating phasor to the
+waveform beside it.
+
+#### `WaveformNode`
+
+A bamboo chart with three rules that keep a scope readable while the physics moves under
+it. All three should be preserved in new scopes:
+
+- **Its layout bounds are frozen at construction** and the traces are clipped to the
+  chart rectangle, so a changing amplitude or tick label can never move the node — nor
+  anything laid out below it.
 - **`autoScale` snaps the full scale to a 1–2–5 sequence** rather than tracking the
   amplitude, so the axis holds still through small changes and always reads as round
   numbers. Prefer a fixed `maxAmplitude` where the signal has a known bound (source
   voltage); reserve `autoScale` for signals that span decades (current through a reactance).
+- **`setTimeWindow(seconds)` keeps a fixed number of cycles on screen.** Drive it from
+  the frequency (`SCOPE_PERIODS_SHOWN / f`): across the 0.02–5 Hz range a window fixed in
+  seconds shows a flat line at one end and a picket fence at the other.
 
-Captions carry the scale: `label` (top-left), the peak value with `units` (top-right), and
-time ticks that only the bottom scope of a stack labels (`showTimeAxisLabels: false` above).
+Pass `traces` to plot several signals at once. A trace with `axis: "right"` is read
+against a second, independently-scaled vertical axis, which is how volts and amps share
+one chart — and sharing the time base is the point, because the phase difference then
+becomes a horizontal offset you can point at. Each trace's caption is drawn in its own
+color, so no separate legend is needed.
+
+`tests/WaveformNode.test.ts` guards the frozen footprint against all of this.
 
 Physics defaults and ranges (amplitude, frequency, R/L/C) live in `ACPhasorConstants.ts`.
+The frequency range spans 2.4 decades, so its control is built with
+`SimNumberControl`'s `logarithmic: true` — the slider then divides the range by ratio
+rather than by difference, and the sub-hertz region where every resonance lives gets as
+much travel as the top end.
 
 ### Pictorial circuit (`CircuitDiagramNode` + element nodes)
 
@@ -157,10 +200,16 @@ circuit.setState(model.currentPhasorProperty.value, angularFrequency, time);
   resistor color bands encode R, winding count tracks L, plate area grows with C.
 - Each element also gets a **live decoration** driven by `setState`, and the three
   together tell one story — R spends energy, L and C store and return it:
-  the resistor glows with p = i²R; the inductor's flux arrows follow i while its
-  terminal ± marks follow v = L·di/dt, so the arrows peak exactly when the marks
-  vanish; the capacitor's plates carry q = C·v as ± symbols, a charge tint, and
-  field arrows in the gap.
+  the resistor glows with p = i²R, running from cold through red to orange-hot as two
+  glow layers cross-fade; the inductor's core arrows and the closed field loops around
+  it follow i while its terminal ± marks follow v = L·di/dt; the capacitor's plates
+  carry q = C·v as ± symbols, a charge tint, and field arrows in the gap.
+- The inductor's field loops are placed at radius `inner + (k + |i|/i_peak)·spacing`,
+  which makes their *position* the field and their radial *speed* proportional to
+  |v_L| = |L·di/dt|. So the loops hang motionless at the current peak — exactly where
+  the ± marks vanish — and race through the zero crossing where those marks are
+  strongest. Keep it a pure function of the instantaneous field rather than an
+  integrated scroll, or pause / step-forward / reset will drift out of agreement.
 - `elementScale` picks the reference those voltage-driven decorations use:
   `"absolute"` (against `CAPACITOR_SATURATION_CHARGE_C` / `INDUCTOR_SATURATION_EMF_V`)
   where the element sees the source voltage, `"peak"` in a series loop where one
@@ -168,6 +217,10 @@ circuit.setState(model.currentPhasorProperty.value, angularFrequency, time);
   slot or the decoration has nothing to scale.
 - Every element in a slot shares one footprint (`ELEMENT_HALF_WIDTH`) and the diagram
   freezes its layout bounds at construction, so switching type never shifts the screen.
+  A decoration that is hidden at rest is out of bounds while hidden, so a part that has
+  one must freeze its own `localBounds` at the decoration's full extent —
+  `InductorNode` does this for its field loops. Anything that can grow the bounds must
+  also be built *before* `CircuitDiagramNode` freezes its own.
 - Carriers ride the rounded wire path and hide where a part covers it; their sway is
   the charge q(t) = ∫i dt, so the motion is the current. **A capacitor cuts the loop**:
   carriers queue against the plate they are flowing toward (`pilePitch` apart) and
@@ -220,15 +273,22 @@ Fleet-standard Vitest layout (keep when forking):
 |---|---|
 | `vitest.config.ts` | `happy-dom` environment; `setupFiles: ["./tests/setup.ts"]`; `execArgv: ["--expose-gc"]` |
 | `tests/setup.ts` | Canvas / AudioContext mocks + `init({ name: "…" })` before SceneryStack imports |
-| `tests/TimeModel.test.ts` | Sample model unit tests — replace with real physics tests |
-| `tests/memory-leak.test.ts` | WeakRef + `forceGC` dispose regression (fleet pattern) |
+| `tests/TimeModel.test.ts` | Clock unit tests |
+| `tests/{Phasor,Impedance,ACSourceModel,IntroModel,SeriesRlcModel}.test.ts` | Physics: Ohm's law, KVL, the regimes, resonance, triangle similarity |
+| `tests/WaveformNode.test.ts` | Frozen footprint under rescale / retune, independent y-axes |
+| `tests/SimNumberControl.test.ts` | The logarithmic-slider bridge, including both ends of the range |
+| `tests/memory-leak.test.ts` | WeakRef + `forceGC` dispose regression, plus listener-detach checks for view nodes |
 | `tests/fuzz/fuzz.spec.ts` | Optional Playwright fuzz smoke via joist `?fuzz` |
 | `playwright.config.ts` | Chromium project + Vite webServer for fuzz |
 
 - Put unit tests only under root `tests/`, mirroring `src/` (never co-locate or use `__tests__/`).
 - Run `npm test`. CI runs the suite when a `test` script is present.
 - Expand `memory-leak.test.ts` for any component that adds/removes nodes or links Properties at
-  runtime (see OpticsLab for a deep suite).
+  runtime (see OpticsLab for a deep suite). For a **view node**, assert that `dispose()`
+  leaves `someProperty.hasListeners()` false rather than asserting a `WeakRef` was
+  collected: a scenery `Node` is reached from enough long-lived machinery to make
+  collection a flaky proxy, whereas the leftover listener is the actual defect — the
+  model keeps the node alive *and* keeps calling into it.
 - Optional: `npm run test:fuzz` / `test:fuzz:quick` (not part of default CI).
 
 ## Commands

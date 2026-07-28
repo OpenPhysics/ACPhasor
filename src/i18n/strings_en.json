@@ -25,14 +25,20 @@
     "faradsPattern": "{{value}} F",
     "voltsPattern": "{{value}} V",
     "hertzPattern": "{{value}} Hz",
-    "degreesPattern": "{{value}}°"
+    "degreesPattern": "{{value}}°",
+    "amperesPattern": "{{value}} A",
+    "resonantFrequency": "Resonant frequency",
+    "atResonance": "At resonance",
+    "tipToTail": "Tip to tail",
+    "voltageTriangle": "Voltages",
+    "impedanceTriangle": "Impedances"
   },
   "a11y": {
     "intro": {
       "screenSummary": {
-        "playArea": "The play area shows an AC source connected to one electromagnetic component — a resistor, inductor, or capacitor — and its voltage and current phasors.",
+        "playArea": "The play area shows an AC source connected to one electromagnetic component — a resistor, inductor, or capacitor — a rotating phasor diagram with the angle between voltage and current marked, and an oscilloscope plotting both against a shared time axis.",
         "controlArea": "The control area has controls for the component type, its value, the source voltage and frequency, playback, and a Reset All button.",
-        "interactionHint": "Choose a component and explore how its phasor relates to the AC drive."
+        "interactionHint": "Choose a component and explore how its phasor relates to the AC drive, and how the part itself responds."
       },
       "currentDetails": {
         "resistor": "A resistor is connected. Its current is in phase with the source voltage.",
@@ -50,9 +56,9 @@
     },
     "seriesRlc": {
       "screenSummary": {
-        "playArea": "The play area shows a series RLC circuit driven by an AC source, with resistor, inductor, and capacitor voltage phasors closing back onto the source phasor.",
-        "controlArea": "The control area has controls for R, L, and C, the source voltage and frequency, and a Reset All button.",
-        "interactionHint": "Adjust R, L, and C to see how the series impedance and voltage triangle change."
+        "playArea": "The play area shows a series RLC circuit driven by an AC source, a rotating voltage phasor diagram in which the resistor, inductor, and capacitor phasors close back onto the source phasor, the matching impedance triangle, and an oscilloscope plotting the source voltage and the current.",
+        "controlArea": "The control area has controls for R, L, and C, the source voltage and frequency, a checkbox to draw the phasors tip to tail, playback, and a Reset All button.",
+        "interactionHint": "Adjust R, L, and C to see how the series impedance and voltage triangle change, and lower the frequency to find resonance."
       },
       "currentDetails": {
         "inductive": "The circuit is inductive: the source voltage leads the current, so the net reactance points up.",
@@ -64,7 +70,8 @@
         "inductance": "Inductance",
         "capacitance": "Capacitance",
         "sourceVoltage": "Source voltage amplitude",
-        "frequency": "Source frequency"
+        "frequency": "Source frequency",
+        "tipToTail": "Draw the voltage phasors tip to tail"
       }
     },
     "resonance": {

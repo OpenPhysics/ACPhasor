@@ -25,14 +25,20 @@
     "faradsPattern": "{{value}} F",
     "voltsPattern": "{{value}} V",
     "hertzPattern": "{{value}} Hz",
-    "degreesPattern": "{{value}}°"
+    "degreesPattern": "{{value}}°",
+    "amperesPattern": "{{value}} A",
+    "resonantFrequency": "Frecuencia de resonancia",
+    "atResonance": "En resonancia",
+    "tipToTail": "Punta con cola",
+    "voltageTriangle": "Tensiones",
+    "impedanceTriangle": "Impedancias"
   },
   "a11y": {
     "intro": {
       "screenSummary": {
-        "playArea": "El área de juego muestra una fuente de CA conectada a un componente electromagnético — resistencia, inductor o condensador — y sus fasores de tensión y corriente.",
+        "playArea": "El área de juego muestra una fuente de corriente alterna conectada a un componente electromagnético — resistencia, inductor o condensador — un diagrama de fasores giratorio con el ángulo entre tensión y corriente marcado, y un osciloscopio que traza ambos sobre un eje de tiempo compartido.",
         "controlArea": "El área de control tiene controles para el tipo de componente, su valor, la tensión y la frecuencia de la fuente, la reproducción y un botón Restablecer todo.",
-        "interactionHint": "Elige un componente y explora cómo su fasor se relaciona con la señal de CA."
+        "interactionHint": "Elige un componente y explora cómo se relaciona su fasor con la excitación alterna, y cómo responde la propia pieza."
       },
       "currentDetails": {
         "resistor": "Hay una resistencia conectada. Su corriente está en fase con la tensión de la fuente.",
@@ -50,9 +56,9 @@
     },
     "seriesRlc": {
       "screenSummary": {
-        "playArea": "El área de juego muestra un circuito RLC en serie impulsado por una fuente de CA, con los fasores de tensión de la resistencia, el inductor y el condensador cerrándose sobre el fasor de la fuente.",
-        "controlArea": "El área de control tiene controles para R, L y C, la tensión y la frecuencia de la fuente, y un botón Restablecer todo.",
-        "interactionHint": "Ajusta R, L y C para ver cómo cambian la impedancia en serie y el triángulo de tensiones."
+        "playArea": "El área de juego muestra un circuito RLC en serie alimentado por una fuente de corriente alterna, un diagrama de fasores de tensión giratorio en el que los fasores de la resistencia, el inductor y el condensador se cierran sobre el fasor de la fuente, el triángulo de impedancias correspondiente, y un osciloscopio que traza la tensión de fuente y la corriente.",
+        "controlArea": "El área de control tiene controles para R, L y C, la tensión y la frecuencia de fuente, una casilla para dibujar los fasores punta con cola, la reproducción y un botón Reiniciar todo.",
+        "interactionHint": "Ajusta R, L y C para ver cómo cambian la impedancia en serie y el triángulo de tensiones, y baja la frecuencia para encontrar la resonancia."
       },
       "currentDetails": {
         "inductive": "El circuito es inductivo: la tensión de la fuente se adelanta a la corriente, por lo que la reactancia neta apunta hacia arriba.",
@@ -64,7 +70,8 @@
         "inductance": "Inductancia",
         "capacitance": "Capacitancia",
         "sourceVoltage": "Amplitud de la tensión de fuente",
-        "frequency": "Frecuencia de la fuente"
+        "frequency": "Frecuencia de la fuente",
+        "tipToTail": "Dibujar los fasores de tensión punta con cola"
       }
     },
     "resonance": {

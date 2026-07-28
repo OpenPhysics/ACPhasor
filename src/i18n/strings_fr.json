@@ -25,14 +25,20 @@
     "faradsPattern": "{{value}} F",
     "voltsPattern": "{{value}} V",
     "hertzPattern": "{{value}} Hz",
-    "degreesPattern": "{{value}}°"
+    "degreesPattern": "{{value}}°",
+    "amperesPattern": "{{value}} A",
+    "resonantFrequency": "Fréquence de résonance",
+    "atResonance": "À la résonance",
+    "tipToTail": "Bout à bout",
+    "voltageTriangle": "Tensions",
+    "impedanceTriangle": "Impédances"
   },
   "a11y": {
     "intro": {
       "screenSummary": {
-        "playArea": "La zone de jeu montre une source CA connectée à un composant électromagnétique — résistance, bobine ou condensateur — et ses phasors de tension et de courant.",
+        "playArea": "La zone de jeu montre une source alternative reliée à un composant électromagnétique — résistance, bobine ou condensateur — un diagramme de phaseurs en rotation où l'angle entre la tension et le courant est marqué, et un oscilloscope traçant les deux sur un axe de temps commun.",
         "controlArea": "La zone de contrôle comporte des réglages pour le type de composant, sa valeur, la tension et la fréquence de la source, la lecture, ainsi qu'un bouton Tout réinitialiser.",
-        "interactionHint": "Choisissez un composant et explorez le lien entre son phasor et la source CA."
+        "interactionHint": "Choisissez un composant et explorez la relation entre son phaseur et l'excitation alternative, et la façon dont la pièce elle-même réagit."
       },
       "currentDetails": {
         "resistor": "Une résistance est connectée. Son courant est en phase avec la tension de source.",
@@ -50,9 +56,9 @@
     },
     "seriesRlc": {
       "screenSummary": {
-        "playArea": "La zone de jeu montre un circuit RLC série alimenté par une source CA, avec les phasors de tension de la résistance, de la bobine et du condensateur qui se referment sur le phasor de la source.",
-        "controlArea": "La zone de contrôle comporte des réglages pour R, L et C, la tension et la fréquence de la source, ainsi qu'un bouton Tout réinitialiser.",
-        "interactionHint": "Réglez R, L et C pour voir comment changent l'impédance série et le triangle des tensions."
+        "playArea": "La zone de jeu montre un circuit RLC série alimenté par une source alternative, un diagramme de phaseurs de tension en rotation où les phaseurs de la résistance, de la bobine et du condensateur se referment sur le phaseur de la source, le triangle des impédances correspondant, et un oscilloscope traçant la tension de source et le courant.",
+        "controlArea": "La zone de contrôle comporte des contrôles pour R, L et C, la tension et la fréquence de source, une case à cocher pour tracer les phaseurs bout à bout, la lecture, et un bouton Tout réinitialiser.",
+        "interactionHint": "Ajustez R, L et C pour voir comment l'impédance série et le triangle des tensions changent, et abaissez la fréquence pour trouver la résonance."
       },
       "currentDetails": {
         "inductive": "Le circuit est inductif : la tension de source est en avance sur le courant, donc la réactance nette pointe vers le haut.",
@@ -64,7 +70,8 @@
         "inductance": "Inductance",
         "capacitance": "Capacité",
         "sourceVoltage": "Amplitude de la tension de source",
-        "frequency": "Fréquence de la source"
+        "frequency": "Fréquence de la source",
+        "tipToTail": "Tracer les phaseurs de tension bout à bout"
       }
     },
     "resonance": {

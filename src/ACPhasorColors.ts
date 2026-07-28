@@ -157,10 +157,23 @@ const ACPhasorColors = {
     projector: "#00838f",
   }),
 
-  /** Heat glow around the resistor body, showing the power it dissipates. */
+  /**
+   * Outer heat glow around the resistor body — the wide, cool halo that appears
+   * first as the resistor starts to dissipate.
+   */
   dissipationGlowColorProperty: new ProfileColorProperty(ACPhasorNamespace, "dissipationGlow", {
     default: "#ff7043",
     projector: "#e64a19",
+  }),
+
+  /**
+   * Inner heat glow, cross-faded over the outer one at high dissipation so the
+   * part visibly runs from dull red to orange-hot rather than merely getting
+   * more opaque.
+   */
+  dissipationGlowHotColorProperty: new ProfileColorProperty(ACPhasorNamespace, "dissipationGlowHot", {
+    default: "#ffca28",
+    projector: "#ff8f00",
   }),
 
   // ── Capacitor plates (three faces of the same metal, lit from above) ─────────
@@ -209,10 +222,18 @@ const ACPhasorColors = {
 
   // ── Circuit-component colors (R, L, C) ───────────────────────────────────────
 
-  /** Resistor (R) accent — used in icons and future component nodes. */
+  /**
+   * Resistor (R) accent — used for its label, its phasor, and its screen icon.
+   *
+   * Rose rather than red: the R accent and a positive charge symbol appear
+   * together on both of the first two screens, and the plain red it used to be
+   * was all but indistinguishable from {@link positiveChargeColorProperty}.
+   * Red-positive / blue-negative is a physics convention worth keeping, so the
+   * arbitrary one — the component accent — is the one that moved.
+   */
   resistorColorProperty: new ProfileColorProperty(ACPhasorNamespace, "resistor", {
-    default: "#ef5350",
-    projector: "#c62828",
+    default: "#ec407a",
+    projector: "#ad1457",
   }),
 
   /** Inductor (L) accent. */
@@ -225,6 +246,23 @@ const ACPhasorColors = {
   capacitorColorProperty: new ProfileColorProperty(ACPhasorNamespace, "capacitor", {
     default: "#42a5f5",
     projector: "#1565c0",
+  }),
+
+  // ── Frequency-domain quantities ──────────────────────────────────────────────
+
+  /**
+   * Impedance |Z| — the resultant of the impedance triangle, and the partner of
+   * the source-voltage phasor in the geometrically identical voltage triangle.
+   */
+  impedanceColorProperty: new ProfileColorProperty(ACPhasorNamespace, "impedance", {
+    default: "#ffb74d",
+    projector: "#e65100",
+  }),
+
+  /** Highlight for the "at resonance" badge, where the net reactance cancels. */
+  resonanceHighlightColorProperty: new ProfileColorProperty(ACPhasorNamespace, "resonanceHighlight", {
+    default: "#69f0ae",
+    projector: "#00695c",
   }),
 };
 

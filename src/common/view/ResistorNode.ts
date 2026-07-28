@@ -20,7 +20,7 @@
 
 import type { TReadOnlyProperty } from "scenerystack/axon";
 import { Shape } from "scenerystack/kite";
-import { Node, Path, Rectangle, Text } from "scenerystack/scenery";
+import { Node, Path, Rectangle, type TColor, Text } from "scenerystack/scenery";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import { CircuitElementNode } from "./CircuitElementNode.js";
 
@@ -91,14 +91,18 @@ function bandColorsFor(resistance: number): [string, string, string] {
   return [digitColor(Math.floor(twoDigits / 10)), digitColor(twoDigits % 10), multiplierColor(exponent)];
 }
 
-/** Padding of the heat glow beyond the body outline, in pixels. */
-const GLOW_PADDING = 6;
+/** Padding of the outer (cool) heat glow beyond the body outline, in pixels. */
+const GLOW_PADDING = 10;
+
+/** Padding of the inner (hot) heat glow beyond the body outline, in pixels. */
+const HOT_GLOW_PADDING = 3;
 
 export class ResistorNode extends CircuitElementNode {
   public readonly connectionHalfWidth: number;
 
   private readonly valueBands: Rectangle[] = [];
   private readonly heatGlow: Rectangle;
+  private readonly hotGlow: Rectangle;
 
   public constructor(providedOptions?: SelfOptions) {
     const options = {
@@ -128,19 +132,26 @@ export class ResistorNode extends CircuitElementNode {
       );
     }
 
-    // Heat glow behind the body; its opacity is driven by setDissipationFraction.
-    this.heatGlow = new Rectangle(
-      -halfLength - GLOW_PADDING,
-      -halfDiameter - GLOW_PADDING,
-      options.bodyLength + 2 * GLOW_PADDING,
-      options.bodyDiameter + 2 * GLOW_PADDING,
-      {
-        cornerRadius: halfDiameter,
-        fill: ACPhasorColors.dissipationGlowColorProperty,
-        opacity: 0,
-      },
-    );
+    // Heat glow behind the body, in two layers that cross-fade: a wide cool halo
+    // that comes up first, and a tight hot core that only shows near peak power.
+    // Both are drawn at fixed size and only their opacities animate, so the
+    // part's footprint is the same cold as it is glowing.
+    const createGlow = (padding: number, fill: TColor): Rectangle =>
+      new Rectangle(
+        -halfLength - padding,
+        -halfDiameter - padding,
+        options.bodyLength + 2 * padding,
+        options.bodyDiameter + 2 * padding,
+        {
+          cornerRadius: halfDiameter + padding,
+          fill: fill,
+          opacity: 0,
+        },
+      );
+    this.heatGlow = createGlow(GLOW_PADDING, ACPhasorColors.dissipationGlowColorProperty);
+    this.hotGlow = createGlow(HOT_GLOW_PADDING, ACPhasorColors.dissipationGlowHotColorProperty);
     this.addChild(this.heatGlow);
+    this.addChild(this.hotGlow);
 
     const bodyShape = Shape.roundRect(
       -halfLength,
@@ -228,8 +239,18 @@ export class ResistorNode extends CircuitElementNode {
    * Show the power the resistor is dissipating right now, as a fraction of its
    * peak: 0 leaves the part cold, 1 gives it the full heat glow. Power is never
    * negative, so this argument is unsigned.
+   *
+   * The two glow layers come up on different schedules, so the part runs from
+   * cold through dull red to orange-hot rather than merely getting more opaque:
+   * the wide halo rises across the whole range, while the hot core stays dark
+   * until the top third of it.
    */
   public setDissipationFraction(fraction: number): void {
-    this.heatGlow.opacity = 0.55 * Math.max(0, Math.min(1, fraction));
+    const clamped = Math.max(0, Math.min(1, fraction));
+    this.heatGlow.opacity = 0.55 * clamped;
+    // Squared above its threshold, so the hot core arrives late and quickly —
+    // the way something actually starts to glow.
+    const hot = Math.max(0, (clamped - 0.35) / 0.65);
+    this.hotGlow.opacity = 0.7 * hot * hot;
   }
 }

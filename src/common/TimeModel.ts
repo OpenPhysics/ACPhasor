@@ -71,8 +71,12 @@ const TIME_SPEED_SCALE = new Map<TimeSpeed, number>([
  * order (top to bottom in the vertical radio group). Spread into both
  * {@link TimeModel}'s `timeSpeedProperty.validValues` and TimeControlNode's
  * `timeSpeeds` option so the model and the radio group always agree.
+ *
+ * FAST earns its place because the source frequency reaches down to the floor of
+ * AC_FREQUENCY_RANGE_HZ, where one cycle of the phasor takes the better part of a
+ * minute at real time.
  */
-export const DEFAULT_TIME_SPEEDS = [TimeSpeed.NORMAL, TimeSpeed.SLOW];
+export const DEFAULT_TIME_SPEEDS = [TimeSpeed.FAST, TimeSpeed.NORMAL, TimeSpeed.SLOW];
 
 export class TimeModel {
   /** Whether the simulation clock is running. Bind to TimeControlNode. */

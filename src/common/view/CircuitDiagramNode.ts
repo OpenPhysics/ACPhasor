@@ -703,7 +703,10 @@ export class CircuitDiagramNode extends Node {
       const inductorVoltageProperty = slot.voltageProperty;
       this.liveUpdates.push((state) => {
         // Flux follows the current; the EMF follows how fast it is changing.
+        // The loops around the coil carry both at once: where they sit is the
+        // field, how fast they move is the EMF.
         inductorNode.setFieldFraction(state.currentFraction);
+        inductorNode.setFluxState(state.currentFraction);
         if (inductorVoltageProperty) {
           const voltagePhasor = inductorVoltageProperty.value;
           const reference =

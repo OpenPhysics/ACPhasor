@@ -13,8 +13,6 @@
  *  - Layout / chrome values are in screen pixels.
  *  - Colour strings live in ACPhasorColors.ts, not here.
  *  - Computed expressions (e.g. `2 * Math.PI`) may stay inline.
- *
- * Remove the example constants below and replace them with the sim's own.
  */
 
 import { Range } from "scenerystack/dot";
@@ -39,8 +37,20 @@ export const AC_AMPLITUDE_RANGE_V = new Range(0, 10);
 /** Default driving frequency of the AC source (Hz). */
 export const AC_FREQUENCY_DEFAULT_HZ = 1;
 
-/** Selectable driving-frequency range for the AC source (Hz). */
-export const AC_FREQUENCY_RANGE_HZ = new Range(0.1, 5);
+/**
+ * Selectable driving-frequency range for the AC source (Hz).
+ *
+ * The floor is set by resonance, not by the source: across the L and C ranges
+ * below, f₀ = 1/(2π√(LC)) spans 0.0159 Hz (both at maximum) to 1.59 Hz (both at
+ * minimum). A floor of 0.02 Hz therefore brings resonance within reach almost
+ * everywhere in the L–C plane — the lone exception is the exact L = C = 10
+ * corner, which lands a hair below it.
+ *
+ * The span is 2.4 decades, so the frequency control is drawn with a logarithmic
+ * slider (see SimNumberControl's `logarithmic` option); a linear one would spend
+ * most of its travel above 1 Hz, where nothing interesting happens.
+ */
+export const AC_FREQUENCY_RANGE_HZ = new Range(0.02, 5);
 
 // ── Circuit-element defaults (SI units) ───────────────────────────────────────
 
@@ -93,7 +103,63 @@ export const CURRENT_DISPLAY_REFERENCE_A = 0.5;
 export const INTRO_CIRCUIT_SIZE = { width: 360, height: 175 };
 
 /** Loop size of the circuit diagram on the Series RLC screen (px). */
-export const SERIES_CIRCUIT_SIZE = { width: 520, height: 150 };
+export const SERIES_CIRCUIT_SIZE = { width: 520, height: 95 };
+
+// ── Inductor flux loops ───────────────────────────────────────────────────────
+
+/** Closed field loops drawn around the coil at full current. */
+export const INDUCTOR_FLUX_LOOP_COUNT = 4;
+
+/** Radius of the innermost flux loop, measured from the coil axis (px). */
+export const INDUCTOR_FLUX_INNER_RADIUS = 17;
+
+/**
+ * Radial spacing between consecutive flux loops (px). The loops drift outward by
+ * one spacing over a quarter cycle, so this also sets how far the field visibly
+ * travels as the current climbs from zero to its peak.
+ */
+export const INDUCTOR_FLUX_LOOP_SPACING = 9;
+
+// ── Phasor diagrams and oscilloscopes ─────────────────────────────────────────
+
+/** Half-extent of the Intro screen's phasor clock, in view pixels. */
+export const INTRO_DIAL_VIEW_RADIUS = 115;
+
+/** Half-extent of the Series RLC voltage phasor diagram, in view pixels. */
+export const SERIES_VOLTAGE_DIAL_VIEW_RADIUS = 95;
+
+/** Half-extent of the Series RLC impedance triangle, in view pixels. */
+export const SERIES_IMPEDANCE_DIAL_VIEW_RADIUS = 75;
+
+/** Plot size of the oscilloscope on the Intro screen (px). */
+export const INTRO_SCOPE_SIZE = { width: 600, height: 150 };
+
+/** Plot size of the oscilloscope on the Series RLC screen (px). */
+export const SERIES_SCOPE_SIZE = { width: 600, height: 95 };
+
+/**
+ * Cycles of the source held on screen by an oscilloscope. The time window is
+ * retuned to this many periods whenever the frequency changes, so a trace reads
+ * the same at the bottom of the frequency range as at the top — a fixed window
+ * would show a flat line at 0.02 Hz and a picket fence at 5 Hz.
+ */
+export const SCOPE_PERIODS_SHOWN = 3;
+
+// ── Resonance ─────────────────────────────────────────────────────────────────
+
+/**
+ * Phase angle |arg Z| (radians) below which the series circuit is reported as
+ * being at resonance. Shared by the screen-summary description and the on-screen
+ * badge so the two can never disagree.
+ *
+ * The test is on the phase rather than on the reactance because the phase is
+ * what the learner is looking at — it is the angle of both triangles, and it is
+ * scale-free, whereas a band in ohms means something quite different at R = 1
+ * than at R = 100. It also has to be wide enough to actually land on: reactance
+ * passes through zero steeply, and a band of a few hundredths of an ohm is
+ * narrower than a single step of the frequency slider.
+ */
+export const RESONANCE_PHASE_TOLERANCE_RADIANS = (5 * Math.PI) / 180;
 
 ACPhasorNamespace.register("ACPhasorConstants", {
   SCREEN_VIEW_MARGIN,
@@ -113,4 +179,14 @@ ACPhasorNamespace.register("ACPhasorConstants", {
   CURRENT_DISPLAY_REFERENCE_A,
   INTRO_CIRCUIT_SIZE,
   SERIES_CIRCUIT_SIZE,
+  INDUCTOR_FLUX_LOOP_COUNT,
+  INDUCTOR_FLUX_INNER_RADIUS,
+  INDUCTOR_FLUX_LOOP_SPACING,
+  INTRO_DIAL_VIEW_RADIUS,
+  SERIES_VOLTAGE_DIAL_VIEW_RADIUS,
+  SERIES_IMPEDANCE_DIAL_VIEW_RADIUS,
+  INTRO_SCOPE_SIZE,
+  SERIES_SCOPE_SIZE,
+  SCOPE_PERIODS_SHOWN,
+  RESONANCE_PHASE_TOLERANCE_RADIANS,
 });
