@@ -40,6 +40,11 @@ describe("Phasor", () => {
     expect(p.instantaneousValue(omega, 0.25)).toBeCloseTo(-1);
   });
 
+  it("evaluates A·cos(Θ + φ) from an accumulated drive phase", () => {
+    const p = new Phasor(2, Math.PI / 6);
+    expect(p.instantaneousAtDrivePhase(Math.PI / 3)).toBeCloseTo(2 * Math.cos(Math.PI / 3 + Math.PI / 6));
+  });
+
   it("adds phasors by superposition", () => {
     // Two equal-amplitude phasors 90° apart sum to amplitude √2 at 45°.
     const sum = new Phasor(1, 0).plus(new Phasor(1, Math.PI / 2));

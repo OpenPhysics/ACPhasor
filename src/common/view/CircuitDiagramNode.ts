@@ -44,7 +44,7 @@
  *     } ],
  *   } );
  *   // each frame:
- *   circuit.setState( model.currentPhasorProperty.value, omega, time );
+ *   circuit.setState( model.currentPhasorProperty.value, omega, drivePhase );
  */
 
 import { DerivedProperty, type TReadOnlyProperty } from "scenerystack/axon";
@@ -153,7 +153,8 @@ type InstantaneousState = {
    */
   currentRateFraction: number;
   angularFrequency: number;
-  time: number;
+  /** Accumulated drive phase Θ (radians); see {@link ACSourceModel.drivePhaseProperty}. */
+  drivePhase: number;
 };
 
 /** A capacitor in the diagram plus the hook that re-applies its plate size. */
@@ -388,17 +389,18 @@ export class CircuitDiagramNode extends Node {
   }
 
   /**
-   * Update the diagram for the given current at time t: carrier positions,
+   * Update the diagram for the given current at drive phase Θ: carrier positions,
    * current direction, source polarity, and every element's live decoration.
    *
-   * Carrier displacement is proportional to the charge q(t) = (|I|/ω)·sin(ωt + φ),
+   * Carrier displacement is proportional to the charge q = (|I|/ω)·sin(Θ + φ),
    * so carriers slosh with an amplitude that grows with current and shrinks with
-   * frequency.
+   * frequency. Θ is the source's accumulated drive phase, not ω·t, so a frequency
+   * change does not jump the carriers.
    */
-  public setState(current: Phasor, angularFrequency: number, time: number): void {
-    const phase = angularFrequency * time + current.phase;
+  public setState(current: Phasor, angularFrequency: number, drivePhase: number): void {
+    const phase = drivePhase + current.phase;
 
-    // Carrier displacement is the charge q(t) = (|I|/ω)·sin(phase).
+    // Carrier displacement is the charge q = (|I|/ω)·sin(phase).
     let offset = 0;
     if (angularFrequency > 1e-6) {
       const chargeAmplitude = current.amplitude / angularFrequency;
@@ -414,13 +416,13 @@ export class CircuitDiagramNode extends Node {
       currentFraction: Math.cos(phase) * gate,
       currentRateFraction: -Math.sin(phase) * gate,
       angularFrequency: angularFrequency,
-      time: time,
+      drivePhase: drivePhase,
     };
     for (const update of this.liveUpdates) {
       update(state);
     }
 
-    // Direction arrow: instantaneous current i(t) = |I|·cos(phase). Positive
+    // Direction arrow: instantaneous current i = |I|·cos(phase). Positive
     // (clockwise) current runs right→left along the bottom wire, so the arrow
     // points left; it flips for negative current and fades with |i|.
     const instantaneous = current.amplitude * Math.cos(phase);
@@ -438,7 +440,7 @@ export class CircuitDiagramNode extends Node {
     // Source polarity.
     if (this.sourceVoltageProperty) {
       const sourceVoltage = this.sourceVoltageProperty.value;
-      this.sourceNode.setVoltage(sourceVoltage.instantaneousValue(angularFrequency, time), sourceVoltage.amplitude);
+      this.sourceNode.setVoltage(sourceVoltage.instantaneousAtDrivePhase(drivePhase), sourceVoltage.amplitude);
     }
   }
 
@@ -711,7 +713,7 @@ export class CircuitDiagramNode extends Node {
           const voltagePhasor = inductorVoltageProperty.value;
           const reference =
             this.elementScale === "peak" ? Math.max(voltagePhasor.amplitude, 1e-9) : INDUCTOR_SATURATION_EMF_V;
-          inductorNode.setEmfFraction(voltagePhasor.instantaneousValue(state.angularFrequency, state.time) / reference);
+          inductorNode.setEmfFraction(voltagePhasor.instantaneousAtDrivePhase(state.drivePhase) / reference);
         } else {
           // No voltage Property to scale against — show the timing alone.
           inductorNode.setEmfFraction(state.currentRateFraction);
@@ -750,7 +752,7 @@ export class CircuitDiagramNode extends Node {
       this.liveUpdates.push((state) => {
         const voltagePhasor = capacitorVoltageProperty.value;
         const capacitance = capacitanceProperty.value;
-        const charge = capacitance * voltagePhasor.instantaneousValue(state.angularFrequency, state.time);
+        const charge = capacitance * voltagePhasor.instantaneousAtDrivePhase(state.drivePhase);
         const reference =
           this.elementScale === "peak"
             ? Math.max(capacitance * voltagePhasor.amplitude, 1e-9)

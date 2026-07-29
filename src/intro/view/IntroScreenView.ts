@@ -346,7 +346,7 @@ export class IntroScreenView extends ScreenView {
         stepForwardButtonOptions: {
           ...FLAT_RECTANGULAR_BUTTON_OPTIONS,
           // stepForward, not step: the button is only ever pressed while paused.
-          listener: () => model.timer.stepForward(1 / 60),
+          listener: () => model.stepForward(1 / 60),
         },
       },
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
@@ -409,20 +409,20 @@ export class IntroScreenView extends ScreenView {
     this.updatePhasorClock();
   }
 
-  /** Position the rotating display phasors for the current time. */
+  /** Position the rotating display phasors for the current drive phase. */
   private updatePhasorClock(): void {
     const time = this.model.timer.timeProperty.value;
+    const drivePhase = this.model.source.drivePhaseProperty.value;
     const angularFrequency = this.model.source.angularFrequencyProperty.value;
-    const rotation = angularFrequency * time;
     const voltagePhase = this.model.voltagePhasorProperty.value.phase;
     const currentPhase = this.model.currentPhasorProperty.value.phase;
 
-    this.displayVoltageProperty.value = new Phasor(DIAL_VOLTAGE_ARROW_LENGTH, voltagePhase + rotation);
-    this.displayCurrentProperty.value = new Phasor(DIAL_CURRENT_ARROW_LENGTH, currentPhase + rotation);
+    this.displayVoltageProperty.value = new Phasor(DIAL_VOLTAGE_ARROW_LENGTH, voltagePhase + drivePhase);
+    this.displayCurrentProperty.value = new Phasor(DIAL_CURRENT_ARROW_LENGTH, currentPhase + drivePhase);
 
-    this.scope.setCursorTime(time);
+    this.scope.setCursorTime(time, drivePhase);
 
-    this.circuit.setState(this.model.currentPhasorProperty.value, angularFrequency, time);
+    this.circuit.setState(this.model.currentPhasorProperty.value, angularFrequency, drivePhase);
   }
 
   public reset(): void {

@@ -52,7 +52,9 @@
     "wattsPattern": "{{value}} W",
     "voltAmperesPattern": "{{value}} VA",
     "reactivePowerPattern": "{{value}} var",
-    "plainPattern": "{{value}}"
+    "plainPattern": "{{value}}",
+    "vs": "vs",
+    "graph": "Graphique"
   },
   "a11y": {
     "intro": {

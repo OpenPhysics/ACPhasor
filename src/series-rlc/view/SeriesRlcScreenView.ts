@@ -21,7 +21,7 @@ import { HBox, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { ResetAllButton, TimeControlNode } from "scenerystack/scenery-phet";
 import type { ScreenViewOptions } from "scenerystack/sim";
 import { ScreenView } from "scenerystack/sim";
-import { Checkbox } from "scenerystack/sun";
+import { Checkbox, RectangularPushButton } from "scenerystack/sun";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import {
   AC_AMPLITUDE_RANGE_V,
@@ -46,6 +46,8 @@ import {
 import { SimPanel } from "../../common/SimPanel.js";
 import { DEFAULT_TIME_SPEEDS } from "../../common/TimeModel.js";
 import { CircuitDiagramNode } from "../../common/view/CircuitDiagramNode.js";
+import ConfigurableGraph from "../../common/view/graph/ConfigurableGraph.js";
+import type { PlottableProperty } from "../../common/view/graph/PlottableProperty.js";
 import { PhaseArcNode } from "../../common/view/PhaseArcNode.js";
 import { PhasorChainNode } from "../../common/view/PhasorChainNode.js";
 import { PhasorDiagramNode } from "../../common/view/PhasorDiagramNode.js";
@@ -100,6 +102,7 @@ export class SeriesRlcScreenView extends ScreenView {
   private readonly model: SeriesRlcModel;
   private readonly circuit: CircuitDiagramNode;
   private readonly scope: WaveformNode;
+  private readonly graph: ConfigurableGraph;
 
   // Voltage phasors as drawn: normalized to the dial and rotating at ω.
   private readonly displaySource = displayPhasorProperty();
@@ -403,7 +406,7 @@ export class SeriesRlcScreenView extends ScreenView {
         stepForwardButtonOptions: {
           ...FLAT_RECTANGULAR_BUTTON_OPTIONS,
           // stepForward, not step: the button is only ever pressed while paused.
-          listener: () => model.timer.stepForward(1 / 60),
+          listener: () => model.stepForward(1 / 60),
         },
       },
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
@@ -422,6 +425,65 @@ export class SeriesRlcScreenView extends ScreenView {
     // reset button, so it is placed off that rather than off the panel above it.
     timeControl.right = resetAllButton.left - 30;
 
+    // ── ConfigurableGraph overlay ──────────────────────────────────────────
+    // A draggable Y-vs-X explorer (ported from Resonance) that lets the user
+    // plot any two of the screen's live quantities against each other. It starts
+    // hidden; the toggle button below shows/hides it. When visible, step() feeds
+    // it one sample per frame from the currently selected axes' Properties.
+    const sourceAmplitudeProperty = new DerivedProperty([model.voltagePhasorProperty], (v) => v.amplitude);
+    const currentAmplitudeProperty = new DerivedProperty([model.currentPhasorProperty], (i) => i.amplitude);
+    const resistorAmplitudeProperty = new DerivedProperty([model.resistorVoltageProperty], (v) => v.amplitude);
+    const inductorAmplitudeProperty = new DerivedProperty([model.inductorVoltageProperty], (v) => v.amplitude);
+    const capacitorAmplitudeProperty = new DerivedProperty([model.capacitorVoltageProperty], (v) => v.amplitude);
+    const phaseDegreesProperty = new DerivedProperty([model.phaseProperty], (phase) => (phase * 180) / Math.PI);
+    const impedanceMagnitudeProperty = new DerivedProperty([model.impedanceProperty], (z) => z.magnitude);
+
+    const frequencyPlottable: PlottableProperty = {
+      name: labels.frequencyStringProperty,
+      property: model.source.frequencyProperty,
+      unit: "Hz",
+    };
+    const currentPlottable: PlottableProperty = {
+      name: labels.currentStringProperty,
+      property: currentAmplitudeProperty,
+      unit: "A",
+    };
+    const plottableProperties: PlottableProperty[] = [
+      { name: labels.sourceVoltageStringProperty, property: sourceAmplitudeProperty, unit: "V" },
+      currentPlottable,
+      { name: "V_R", property: resistorAmplitudeProperty, unit: "V" },
+      { name: "V_L", property: inductorAmplitudeProperty, unit: "V" },
+      { name: "V_C", property: capacitorAmplitudeProperty, unit: "V" },
+      frequencyPlottable,
+      { name: labels.phaseStringProperty, property: phaseDegreesProperty, unit: "°" },
+      { name: labels.impedanceStringProperty, property: impedanceMagnitudeProperty, unit: "Ω" },
+      { name: labels.reactanceStringProperty, property: model.reactanceProperty, unit: "Ω" },
+    ];
+    this.graph = new ConfigurableGraph(
+      plottableProperties,
+      frequencyPlottable, // x = frequency
+      currentPlottable, // y = current amplitude
+      SERIES_SCOPE_SIZE.width,
+      SERIES_SCOPE_SIZE.height,
+      this,
+    );
+    this.graph.left = SCREEN_VIEW_MARGIN + 40;
+    this.graph.top = tipToTailCheckbox.bottom + 26;
+
+    const graphToggleButton = new RectangularPushButton({
+      ...FLAT_RECTANGULAR_BUTTON_OPTIONS,
+      content: new Text(labels.graphStringProperty, { font: "14px sans-serif" }),
+      listener: () => {
+        const visible = this.graph.getGraphVisibleProperty();
+        visible.value = !visible.value;
+        if (visible.value) {
+          this.graph.clearData();
+        }
+      },
+      left: SCREEN_VIEW_MARGIN + 40,
+      top: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN - 30,
+    });
+
     this.addChild(this.circuit);
     this.addChild(diagramRow);
     this.addChild(tipToTailCheckbox);
@@ -430,6 +492,8 @@ export class SeriesRlcScreenView extends ScreenView {
     this.addChild(controlPanel);
     this.addChild(timeControl);
     this.addChild(resetAllButton);
+    this.addChild(this.graph);
+    this.addChild(graphToggleButton);
 
     // ── Bindings ────────────────────────────────────────────────────────────
     // The impedance triangle is normalized on its own and never rotates.
@@ -472,6 +536,7 @@ export class SeriesRlcScreenView extends ScreenView {
           sourceVoltageControl,
           frequencyControl,
           tipToTailCheckbox,
+          graphToggleButton,
           timeControl,
           resetAllButton,
         ],
@@ -491,8 +556,8 @@ export class SeriesRlcScreenView extends ScreenView {
   private updateRotatingPhasors(): void {
     const model = this.model;
     const time = model.timer.timeProperty.value;
+    const drivePhase = model.source.drivePhaseProperty.value;
     const angularFrequency = model.source.angularFrequencyProperty.value;
-    const rotation = angularFrequency * time;
 
     const source = model.voltagePhasorProperty.value;
     const resistor = model.resistorVoltageProperty.value;
@@ -502,23 +567,28 @@ export class SeriesRlcScreenView extends ScreenView {
 
     const scale = NORMALIZATION_TARGET / chainExtent(resistor, inductor, capacitor);
 
-    this.displaySource.value = source.scaled(scale).rotated(rotation);
-    this.displayResistor.value = resistor.scaled(scale).rotated(rotation);
-    this.displayInductor.value = inductor.scaled(scale).rotated(rotation);
-    this.displayCapacitor.value = capacitor.scaled(scale).rotated(rotation);
+    this.displaySource.value = source.scaled(scale).rotated(drivePhase);
+    this.displayResistor.value = resistor.scaled(scale).rotated(drivePhase);
+    this.displayInductor.value = inductor.scaled(scale).rotated(drivePhase);
+    this.displayCapacitor.value = capacitor.scaled(scale).rotated(drivePhase);
     // Amps and volts share no scale, so the current gets its own.
-    this.displayCurrent.value = new Phasor(CURRENT_TARGET, current.phase + rotation);
+    this.displayCurrent.value = new Phasor(CURRENT_TARGET, current.phase + drivePhase);
 
-    this.scope.setCursorTime(time);
-    this.circuit.setState(current, angularFrequency, time);
+    this.scope.setCursorTime(time, drivePhase);
+    this.circuit.setState(current, angularFrequency, drivePhase);
   }
 
   public reset(): void {
     this.updateRotatingPhasors();
+    this.graph.reset();
   }
 
   public override step(_dt: number): void {
     this.updateRotatingPhasors();
+    // Sample the configurable graph once per frame while it is visible.
+    if (this.graph.getGraphVisibleProperty().value) {
+      this.graph.addDataPoint();
+    }
   }
 
   public override dispose(): void {

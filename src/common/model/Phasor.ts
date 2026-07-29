@@ -67,9 +67,21 @@ export class Phasor {
   /**
    * The instantaneous physical value at time t for angular frequency ω:
    *   Re{ complex · e^(jωt) } = A·cos(ωt + φ).
+   *
+   * Prefer {@link instantaneousAtDrivePhase} for live animation — that form
+   * stays continuous when ω changes, because the drive phase is accumulated as
+   * ∫ω dt rather than rewritten as ω·t.
    */
   public instantaneousValue(angularFrequency: number, time: number): number {
     return this.amplitude * Math.cos(angularFrequency * time + this.phase);
+  }
+
+  /**
+   * Instantaneous value for a shared accumulated drive phase Θ: A·cos(Θ + φ).
+   * Θ is what the source's `drivePhaseProperty` tracks.
+   */
+  public instantaneousAtDrivePhase(drivePhase: number): number {
+    return this.amplitude * Math.cos(drivePhase + this.phase);
   }
 
   /** Phasor sum (superposition of two sinusoids of the same frequency). */

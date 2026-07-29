@@ -157,7 +157,14 @@ describe("PowerModel", () => {
       expect(model.timer.timeProperty.value).toBeCloseTo(1);
     });
 
-    it("reset() rewinds the clock and restores the circuit", () => {
+    it("advances drive phase with the clock", () => {
+      const model = new PowerModel();
+      model.circuit.source.frequencyProperty.value = 1;
+      model.step(0.25);
+      expect(model.circuit.source.drivePhaseProperty.value).toBeCloseTo(Math.PI / 2);
+    });
+
+    it("reset() rewinds the clock, drive phase, and circuit", () => {
       const model = new PowerModel();
       model.step(2);
       model.circuit.resistanceProperty.value = 75;
@@ -165,6 +172,7 @@ describe("PowerModel", () => {
       model.reset();
 
       expect(model.timer.timeProperty.value).toBe(0);
+      expect(model.circuit.source.drivePhaseProperty.value).toBe(0);
       expect(model.circuit.resistanceProperty.value).toBe(10);
     });
   });

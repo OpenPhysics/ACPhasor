@@ -161,4 +161,15 @@ describe("WaveformNode", () => {
       expect(scope.bounds.equals(before)).toBe(true);
     }
   });
+
+  it("accepts a drive-phase reference on setCursorTime without resizing", () => {
+    const scope = createDualTraceScope();
+    scope.setTrace(0, 5, 2 * Math.PI, Math.PI / 6);
+    const before = scope.bounds.copy();
+
+    scope.setCursorTime(1.5, Math.PI / 3);
+    scope.setTrace(0, 5, 8 * Math.PI, Math.PI / 6);
+    scope.setCursorTime(1.5, Math.PI / 3);
+    expect(scope.bounds.equals(before)).toBe(true);
+  });
 });

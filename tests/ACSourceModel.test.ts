@@ -43,13 +43,34 @@ describe("ACSourceModel", () => {
     source.dispose();
   });
 
-  it("reset() restores default amplitude and frequency", () => {
+  it("accumulates drive phase as Θ += ω·dt", () => {
+    const source = new ACSourceModel({ frequency: 1 });
+    source.advanceDrivePhase(0.25);
+    expect(source.drivePhaseProperty.value).toBeCloseTo(Math.PI / 2);
+    source.dispose();
+  });
+
+  it("keeps instantaneous voltage continuous across a frequency change", () => {
+    const source = new ACSourceModel({ amplitude: 5, frequency: 1, phase: 0 });
+    source.advanceDrivePhase(0.125); // Θ = π/4 at 1 Hz
+    const before = source.instantaneousVoltage();
+
+    source.frequencyProperty.value = 4;
+    // Without re-accumulating, Θ is unchanged, so v is unchanged.
+    expect(source.instantaneousVoltage()).toBeCloseTo(before);
+    expect(source.instantaneousVoltage()).toBeCloseTo(5 * Math.cos(Math.PI / 4));
+    source.dispose();
+  });
+
+  it("reset() restores default amplitude, frequency, and drive phase", () => {
     const source = new ACSourceModel({ amplitude: 5, frequency: 1 });
     source.amplitudeProperty.value = 9;
     source.frequencyProperty.value = 4;
+    source.advanceDrivePhase(1);
     source.reset();
     expect(source.amplitudeProperty.value).toBeCloseTo(5);
     expect(source.frequencyProperty.value).toBeCloseTo(1);
+    expect(source.drivePhaseProperty.value).toBe(0);
     source.dispose();
   });
 });

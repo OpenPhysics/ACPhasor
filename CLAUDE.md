@@ -35,6 +35,7 @@ Forked from `TemplateSingleSim`.
 | `src/common/view/WaveformNode.ts` | Bamboo oscilloscope: one or more sinusoids against two independent y-axes, shared playhead, frozen footprint, quantized autoScale, retunable time window; a trace may ride a DC offset and shade to zero in two colors |
 | `src/common/view/FrequencyResponseNode.ts` | Bamboo chart of a quantity vs. *frequency* on a log axis, with operating-point marker, f₀ line and half-power band |
 | `src/common/view/axisScale.ts` | The 1–2–5 `niceStep` / `formatTickValue` pair both charts scale their axes with |
+| `src/common/view/graph/ConfigurableGraph.ts` | Draggable/resizable/zoomable Y-vs-X explorer (ported from Resonance): user picks each axis via combo box, plot auto-scales with a fading trail. `step()` feeds it one sample per frame via `addDataPoint()`. Sibling files: `PlottableProperty`, `GraphDataManager`, `GraphControlsPanel`, `GraphInteractionHandler` |
 | `src/common/view/SimNumberControl.ts` | Pre-themed `NumberControl` (dark-panel title + light value badge + units pattern); `logarithmic` for decade-spanning ranges |
 | `src/common/view/SimReadout.ts` | One "label + value badge" row for info panels |
 | `src/common/view/CircuitDiagramNode.ts` | Pictorial single-loop circuit: wire, source, element slots, flowing charge |
@@ -111,16 +112,21 @@ flat buttons, editable fields) keeps readable contrast automatically.
 The four screens share one physics vocabulary. Build screen models and views on
 these rather than re-deriving the complex math:
 
-- **`Phasor`** — immutable value object for A·cos(ωt+φ), backed by dot's `Complex`.
+- **`Phasor`** — immutable value object for A·cos(Θ+φ), backed by dot's `Complex`.
   `phasor.times(z)` / `phasor.dividedBy(z)` apply Ohm's law in the frequency domain
-  (V = I·Z); `phasor.instantaneousValue(ω, t)` recovers the time-domain signal.
+  (V = I·Z); `phasor.instantaneousAtDrivePhase(Θ)` recovers the live signal from the
+  source's accumulated drive phase (prefer that over `instantaneousValue(ω, t)`, which
+  jumps when f changes mid-run).
   Expose phasors through a `Property<Phasor>` with `valueComparisonStrategy: "equalsFunction"`.
 - **`Impedance.ts`** — `resistorImpedance` / `inductorImpedance` / `capacitorImpedance`
   (and `elementImpedance`, `seriesRlcImpedance`, `resonant{Angular}Frequency`) return
   `Complex` values that feed straight into `Phasor.times`/`dividedBy`.
 - **`ACSourceModel`** — composable source: `amplitudeProperty`, `frequencyProperty`,
-  derived `angularFrequencyProperty` (2πf) and `voltagePhasorProperty`. Compose it into
-  a screen model (`public readonly source = new ACSourceModel()`), don't extend it.
+  derived `angularFrequencyProperty` (2πf) and `voltagePhasorProperty`, plus
+  `drivePhaseProperty` advanced as dΘ/dt = ω so frequency changes stay continuous.
+  Compose it into a screen model (`public readonly source = new ACSourceModel()`),
+  don't extend it. Call `source.advanceDrivePhase(dtApplied)` from the screen's
+  `step` / `stepForward` with the same dt the clock actually applied.
 - **`RlcCircuitModel`** — the whole series loop, composed by screens 2, 3 and 4
   (`public readonly circuit = new RlcCircuitModel()`). Never re-derive Z, I, the element
   voltages, f₀, Q or the half-power edges in a screen model; add them here if they are
@@ -212,6 +218,25 @@ The frequency range spans 2.4 decades, so its control is built with
 rather than by difference, and the sub-hertz region where every resonance lives gets as
 much travel as the top end.
 
+#### `ConfigurableGraph` (ported from Resonance)
+
+A draggable, resizable, zoomable Y-vs-X explorer overlay — distinct from the two
+purpose-built charts above. The user picks which physical quantity goes on each axis
+via two combo boxes in the `(Y vs X)` title bar; the plot auto-scales (10% padding,
+nice-number ticks) and draws a fading trail of recent points. Wheel/pinch zoom,
+drag-to-pan, per-axis zoom, header drag, and corner resize are all built in. A
+double-click or the ↻ button returns to auto-scale.
+
+Unlike `WaveformNode`/`FrequencyResponseNode` it takes **arbitrary** data: build a
+`PlottableProperty[]` (`{ name, property, unit? }`) from any live `TReadOnlyProperty<number>`
+and call `graph.addDataPoint()` once per frame in the screen view's `step` while
+`getGraphVisibleProperty().value` is true. It is currently wired into the Series RLC
+screen (toggle button bottom-left), defaulting to Current vs. frequency. The Resonance
+sub-step (RK4 high-resolution) path was dropped in the port — ACPhasor's models are
+single-step — so each axis is sampled at its property's current value. Three colors
+(`graphBackgroundProperty`, `gridLinesProperty`, `plotColorProperty`) were added to
+`ACPhasorColors.ts` for it; text, panel stroke and panel fill reuse the existing palette.
+
 ### Pictorial circuit (`CircuitDiagramNode` + element nodes)
 
 Screens draw the circuit with parts, not schematic symbols, in the spirit of PhET's
@@ -225,7 +250,7 @@ const circuit = new CircuitDiagramNode({
   slots: [{ type: "capacitor", capacitanceProperty, capacitanceRange, voltageProperty }],
 });
 // each frame:
-circuit.setState(model.currentPhasorProperty.value, angularFrequency, time);
+circuit.setState(model.currentPhasorProperty.value, angularFrequency, drivePhase);
 ```
 
 - A slot takes either a fixed `type` or a live `typeProperty` (all three parts are built

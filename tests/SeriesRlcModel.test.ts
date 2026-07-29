@@ -72,11 +72,19 @@ describe("SeriesRlcModel", () => {
       expect(model.timer.timeProperty.value).toBeCloseTo(1);
     });
 
-    it("reset() rewinds the clock", () => {
+    it("advances drive phase with the clock", () => {
+      const model = new SeriesRlcModel();
+      model.source.frequencyProperty.value = 1;
+      model.step(0.5);
+      expect(model.source.drivePhaseProperty.value).toBeCloseTo(Math.PI);
+    });
+
+    it("reset() rewinds the clock and drive phase", () => {
       const model = new SeriesRlcModel();
       model.step(2);
       model.reset();
       expect(model.timer.timeProperty.value).toBe(0);
+      expect(model.source.drivePhaseProperty.value).toBe(0);
     });
   });
 

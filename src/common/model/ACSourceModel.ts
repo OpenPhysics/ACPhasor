@@ -2,9 +2,14 @@
  * ACSourceModel.ts
  *
  * Composable model of the sinusoidal voltage source that drives every screen's
- * circuit: v(t) = V₀·cos(ωt + φ). It owns the user-controllable peak amplitude
- * V₀ and frequency f, and derives the angular frequency ω = 2πf and the source
+ * circuit: v = V₀·cos(Θ + φ). It owns the user-controllable peak amplitude V₀
+ * and frequency f, and derives the angular frequency ω = 2πf and the source
  * voltage {@link Phasor}.
+ *
+ * The drive phase Θ is accumulated as dΘ/dt = ω rather than written as ωt. That
+ * keeps the waveform and the rotating phasors continuous when the learner drags
+ * the frequency mid-run — changing f would otherwise jump cos(ωt + φ) because t
+ * is wall-clock time and the new ω is applied to the whole elapsed history.
  *
  * Compose it into a screen model rather than extending it:
  *
@@ -12,7 +17,11 @@
  *
  *   export class MyModel implements TModel {
  *     public readonly source = new ACSourceModel();
- *     // use this.source.angularFrequencyProperty.value for physics
+ *     public step( dt: number ): void {
+ *       const before = this.timer.timeProperty.value;
+ *       this.timer.step( dt );
+ *       this.source.advanceDrivePhase( this.timer.timeProperty.value - before );
+ *     }
  *   }
  *
  * The source phase φ is fixed at 0 by default (the reference phasor); pass a
@@ -52,6 +61,13 @@ export class ACSourceModel {
   /** Fixed reference phase φ of the source (radians). */
   public readonly phase: number;
 
+  /**
+   * Accumulated drive phase Θ (radians). Advances as dΘ/dt = ω via
+   * {@link advanceDrivePhase}; the rotating dials and scopes read this instead
+   * of ω·t so a frequency change does not discontinuity the signal.
+   */
+  public readonly drivePhaseProperty: NumberProperty;
+
   /** Angular frequency ω = 2πf (rad/s), derived from {@link frequencyProperty}. */
   public readonly angularFrequencyProperty: TReadOnlyProperty<number>;
 
@@ -80,6 +96,8 @@ export class ACSourceModel {
       units: "Hz",
     });
 
+    this.drivePhaseProperty = new NumberProperty(0);
+
     this.angularFrequencyProperty = new DerivedProperty(
       [this.frequencyProperty],
       (frequency) => 2 * Math.PI * frequency,
@@ -92,7 +110,27 @@ export class ACSourceModel {
     );
   }
 
-  /** The instantaneous source voltage v(t) = V₀·cos(ωt + φ). */
+  /**
+   * Advance the drive phase by ω·dt. Pass the same dt the clock actually applied
+   * (including speed scaling and step-forward), so Θ stays locked to the playhead.
+   */
+  public advanceDrivePhase(dt: number): void {
+    this.drivePhaseProperty.value += this.angularFrequencyProperty.value * dt;
+  }
+
+  /**
+   * Instantaneous source voltage at the accumulated drive phase:
+   * V₀·cos(Θ + φ). Prefer this for live animation.
+   */
+  public instantaneousVoltage(): number {
+    return this.voltagePhasorProperty.value.instantaneousAtDrivePhase(this.drivePhaseProperty.value);
+  }
+
+  /**
+   * Analytic sample v(t) = V₀·cos(ωt + φ) from a quiescent phase origin. Useful
+   * for tests and averages over a period; live animation should use
+   * {@link instantaneousVoltage} / {@link drivePhaseProperty} instead.
+   */
   public voltageAt(time: number): number {
     return this.voltagePhasorProperty.value.instantaneousValue(this.angularFrequencyProperty.value, time);
   }
@@ -100,11 +138,13 @@ export class ACSourceModel {
   public reset(): void {
     this.amplitudeProperty.reset();
     this.frequencyProperty.reset();
+    this.drivePhaseProperty.reset();
   }
 
   public dispose(): void {
     this.voltagePhasorProperty.dispose();
     this.angularFrequencyProperty.dispose();
+    this.drivePhaseProperty.dispose();
     this.amplitudeProperty.dispose();
     this.frequencyProperty.dispose();
   }

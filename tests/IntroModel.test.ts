@@ -57,6 +57,32 @@ describe("IntroModel", () => {
     expect(model.timer.timeProperty.value).toBeCloseTo(0.5);
   });
 
+  it("advances drive phase with the clock, including step-forward while paused", () => {
+    const model = new IntroModel();
+    model.source.frequencyProperty.value = 1;
+    model.step(0.25);
+    expect(model.source.drivePhaseProperty.value).toBeCloseTo(Math.PI / 2);
+
+    model.timer.isPlayingProperty.value = false;
+    model.step(1);
+    expect(model.source.drivePhaseProperty.value).toBeCloseTo(Math.PI / 2);
+
+    model.stepForward(0.25);
+    expect(model.source.drivePhaseProperty.value).toBeCloseTo(Math.PI);
+  });
+
+  it("keeps drive phase continuous when frequency changes mid-run", () => {
+    const model = new IntroModel();
+    model.source.frequencyProperty.value = 1;
+    model.step(0.125);
+    const phaseBefore = model.source.drivePhaseProperty.value;
+    const voltageBefore = model.source.instantaneousVoltage();
+
+    model.source.frequencyProperty.value = 3;
+    expect(model.source.drivePhaseProperty.value).toBe(phaseBefore);
+    expect(model.source.instantaneousVoltage()).toBeCloseTo(voltageBefore);
+  });
+
   it("reset() restores the default element and values", () => {
     const model = new IntroModel();
     model.elementTypeProperty.value = "capacitor";
@@ -68,5 +94,6 @@ describe("IntroModel", () => {
     expect(model.resistanceProperty.value).toBe(10);
     expect(model.source.frequencyProperty.value).toBe(1);
     expect(model.timer.timeProperty.value).toBe(0);
+    expect(model.source.drivePhaseProperty.value).toBe(0);
   });
 });

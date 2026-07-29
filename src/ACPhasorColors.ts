@@ -288,6 +288,30 @@ const ACPhasorColors = {
     default: "#7986cb",
     projector: "#3949ab",
   }),
+
+  // ── ConfigurableGraph (ported from Resonance) ────────────────────────────────
+  // A draggable Y-vs-X explorer overlay. Three colors that have no existing
+  // analog in the palette above: the plot background, the grid lines, and the
+  // single trace color. The graph's text, panel stroke, and panel fill reuse
+  // textColorProperty / panelBorderColorProperty / panelBackgroundColorProperty.
+
+  /** Background fill of the ConfigurableGraph plot area. Light neutral in both profiles. */
+  graphBackgroundProperty: new ProfileColorProperty(ACPhasorNamespace, "graphBackground", {
+    default: "#f8f9fa",
+    projector: "#ffffff",
+  }),
+
+  /** Grid lines and tick marks inside the ConfigurableGraph. */
+  gridLinesProperty: new ProfileColorProperty(ACPhasorNamespace, "gridLines", {
+    default: "#c0c0c0",
+    projector: "#cccccc",
+  }),
+
+  /** The single data trace and its fading trail in the ConfigurableGraph. */
+  plotColorProperty: new ProfileColorProperty(ACPhasorNamespace, "plot", {
+    default: "#4fc3f7",
+    projector: "#0d47a1",
+  }),
 };
 
 export default ACPhasorColors;

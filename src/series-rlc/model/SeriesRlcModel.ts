@@ -77,7 +77,19 @@ export class SeriesRlcModel implements TModel {
   public readonly impedancePhasorProperty: TReadOnlyProperty<Phasor> = this.circuit.impedancePhasorProperty;
 
   public step(dt: number): void {
+    const before = this.timer.timeProperty.value;
     this.timer.step(dt);
+    this.source.advanceDrivePhase(this.timer.timeProperty.value - before);
+  }
+
+  /**
+   * Advance the clock and drive phase by one frame while paused. Wire the
+   * TimeControlNode step-forward button here so Θ stays locked to the playhead.
+   */
+  public stepForward(dt: number): void {
+    const before = this.timer.timeProperty.value;
+    this.timer.stepForward(dt);
+    this.source.advanceDrivePhase(this.timer.timeProperty.value - before);
   }
 
   public reset(): void {

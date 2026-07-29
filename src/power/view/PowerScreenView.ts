@@ -370,7 +370,7 @@ export class PowerScreenView extends ScreenView {
         ...FLAT_PLAY_PAUSE_STEP_BUTTON_OPTIONS,
         stepForwardButtonOptions: {
           ...FLAT_RECTANGULAR_BUTTON_OPTIONS,
-          listener: () => model.timer.stepForward(1 / 60),
+          listener: () => model.stepForward(1 / 60),
         },
       },
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
@@ -454,11 +454,13 @@ export class PowerScreenView extends ScreenView {
   private updateAnimation(): void {
     const model = this.model;
     const time = model.timer.timeProperty.value;
+    const drivePhase = model.circuit.source.drivePhaseProperty.value;
     const angularFrequency = model.circuit.source.angularFrequencyProperty.value;
 
-    this.signalScope.setCursorTime(time);
-    this.powerScope.setCursorTime(time);
-    this.circuit.setState(model.circuit.currentPhasorProperty.value, angularFrequency, time);
+    this.signalScope.setCursorTime(time, drivePhase);
+    // p(t) rides at 2ω, so its phase reference is 2Θ.
+    this.powerScope.setCursorTime(time, 2 * drivePhase);
+    this.circuit.setState(model.circuit.currentPhasorProperty.value, angularFrequency, drivePhase);
   }
 
   public reset(): void {

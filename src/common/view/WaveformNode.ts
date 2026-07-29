@@ -50,7 +50,7 @@
  *   } );
  *   scope.setTrace( 0, voltage.amplitude, omega, voltage.phase );
  *   scope.setTrace( 1, current.amplitude, omega, current.phase );
- *   // in step(): scope.setCursorTime( model.timer.timeProperty.value );
+ *   // in step(): scope.setCursorTime( model.timer.timeProperty.value, model.source.drivePhaseProperty.value );
  *
  *   // Instantaneous power: a 2ω sinusoid on a DC offset, shaded and averaged.
  *   const scope = new WaveformNode( {
@@ -58,7 +58,9 @@
  *                 fill: deliveredColor, negativeFill: returnedColor,
  *                 showAverageLine: true, captionValue: "average" } ],
  *   } );
- *   scope.setTrace( 0, apparentPower, 2 * omega, -phase, realPower );
+ *   scope.setTrace( 0, apparentPower, 2 * omega, voltage.phase + current.phase, realPower );
+ *   // Power rides at 2ω, so pass 2·Θ as the drive-phase reference:
+ *   // scope.setCursorTime( time, 2 * drivePhase );
  */
 
 import {
@@ -248,6 +250,16 @@ export class WaveformNode extends Node {
   private readonly playhead: Line | null;
   private readonly sampleCount: number;
   private timeWindow: number;
+
+  /**
+   * When set, traces evaluate as A·cos(Θ + φ + ω·(t − t_cursor)) so the playhead
+   * value tracks an accumulated drive phase Θ instead of ω·t. Null keeps the
+   * legacy A·cos(ωt + φ) form (tests and callers that never pass a drive phase).
+   */
+  private drivePhaseReference: number | null = null;
+
+  /** Last playhead position in the visible window (seconds), for the Θ form above. */
+  private cursorWrappedTime = 0;
 
   public constructor(providedOptions?: SelfOptions) {
     const options = {
@@ -535,7 +547,11 @@ export class WaveformNode extends Node {
   }
 
   private valueAt(trace: Trace, time: number): number {
-    return trace.offset + trace.amplitude * Math.cos(trace.angularFrequency * time + trace.phase);
+    const argument =
+      this.drivePhaseReference !== null
+        ? this.drivePhaseReference + trace.phase + trace.angularFrequency * (time - this.cursorWrappedTime)
+        : trace.angularFrequency * time + trace.phase;
+    return trace.offset + trace.amplitude * Math.cos(argument);
   }
 
   private updateTrace(trace: Trace): void {
@@ -708,12 +724,20 @@ export class WaveformNode extends Node {
    * Slide the playhead to the given absolute time, carrying every trace's dot
    * with it. The time is wrapped into the visible window so the marker cycles
    * across it. No-op unless the node was created with `showCursor: true`.
+   *
+   * Pass `drivePhaseReference` (the source's accumulated Θ, or 2Θ on a 2ω power
+   * scope) so the playhead value stays continuous when frequency changes. With
+   * it set, each trace reads A·cos(Θ + φ + ω·(t − t_cursor)) at window time t.
    */
-  public setCursorTime(time: number): void {
+  public setCursorTime(time: number, drivePhaseReference?: number): void {
     if (!this.playhead) {
       return;
     }
     const wrapped = ((time % this.timeWindow) + this.timeWindow) % this.timeWindow;
+    this.cursorWrappedTime = wrapped;
+    if (drivePhaseReference !== undefined) {
+      this.drivePhaseReference = drivePhaseReference;
+    }
     const x = this.timeAxisTransform.modelToViewX(wrapped);
     this.playhead.setLine(x, 0, x, this.timeAxisTransform.viewHeight);
     for (const trace of this.traces) {
