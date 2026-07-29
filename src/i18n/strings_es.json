@@ -31,7 +31,28 @@
     "atResonance": "En resonancia",
     "tipToTail": "Punta con cola",
     "voltageTriangle": "Tensiones",
-    "impedanceTriangle": "Impedancias"
+    "impedanceTriangle": "Impedancias",
+    "qualityFactor": "Factor de calidad Q",
+    "bandwidth": "Ancho de banda",
+    "currentAmplitude": "Corriente",
+    "sweep": "Barrer",
+    "stopSweep": "Detener",
+    "currentVsFrequency": "Corriente frente a frecuencia",
+    "phaseVsFrequency": "Fase frente a frecuencia",
+    "frequencyAxis": "f (Hz)",
+    "halfPowerBand": "Banda de media potencia",
+    "realPower": "Potencia activa P",
+    "reactivePower": "Potencia reactiva Q",
+    "apparentPower": "Potencia aparente S",
+    "powerFactor": "Factor de potencia",
+    "powerTriangle": "Triángulo de potencias",
+    "instantaneousPower": "Potencia instantánea",
+    "energyDelivered": "Entregada",
+    "energyReturned": "Devuelta",
+    "wattsPattern": "{{value}} W",
+    "voltAmperesPattern": "{{value}} VA",
+    "reactivePowerPattern": "{{value}} var",
+    "plainPattern": "{{value}}"
   },
   "a11y": {
     "intro": {
@@ -76,24 +97,41 @@
     },
     "resonance": {
       "screenSummary": {
-        "playArea": "El área de juego muestra el circuito RLC en serie barrido en frecuencia de excitación, con el triángulo de fase junto a las curvas de impedancia y de corriente en función de la frecuencia.",
-        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-        "interactionHint": "Barre la frecuencia de excitación para encontrar la resonancia, donde las reactancias se cancelan y el ángulo de fase se anula."
+        "playArea": "El área de juego muestra cómo responde el circuito RLC en serie en todo el rango de frecuencias de excitación: una curva de corriente frente a frecuencia con su pico de resonancia y su banda de media potencia marcados, una curva de fase frente a frecuencia debajo, y el triángulo de impedancias, que se aplana sobre el eje de la resistencia en resonancia.",
+        "controlArea": "El área de control tiene controles para R, L y C, la tensión y la frecuencia de fuente, un botón que barre la frecuencia por todo el rango, y un botón Restablecer todo.",
+        "interactionHint": "Barre la frecuencia de excitación para encontrar la resonancia, donde las reactancias se cancelan y el ángulo de fase se anula, y luego cambia R para ver el pico afinarse o ensancharse."
       },
-      "currentDetails": "La pantalla de Resonancia está en su estado inicial.",
+      "currentDetails": {
+        "below": "La frecuencia de excitación está por debajo de la resonancia. El circuito es capacitivo, la corriente se adelanta a la tensión de la fuente, y el punto de trabajo está en el lado de baja frecuencia del pico.",
+        "above": "La frecuencia de excitación está por encima de la resonancia. El circuito es inductivo, la corriente se retrasa respecto a la tensión de la fuente, y el punto de trabajo está en el lado de alta frecuencia del pico.",
+        "at": "La frecuencia de excitación está en resonancia. Las reactancias se cancelan, la impedancia se reduce a la resistencia, y la corriente es máxima."
+      },
       "controls": {
-        "exampleControl": "Control de ejemplo"
+        "resistance": "Resistencia",
+        "inductance": "Inductancia",
+        "capacitance": "Capacitancia",
+        "sourceVoltage": "Amplitud de la tensión de fuente",
+        "frequency": "Frecuencia de la fuente",
+        "sweep": "Barrer la frecuencia de la fuente por todo su rango"
       }
     },
     "power": {
       "screenSummary": {
-        "playArea": "El área de juego muestra la potencia instantánea a lo largo de un ciclo, con la potencia activa media y la componente reactiva oscilante sombreadas por separado y una lectura del factor de potencia.",
-        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-        "interactionHint": "Ajusta la carga para ver cómo cambia el factor de potencia y cómo una carga reactiva no entrega energía neta."
+        "playArea": "El área de juego muestra un circuito RLC en serie, un osciloscopio con la tensión de fuente y la corriente, y debajo la potencia instantánea p igual a v por i, sombreada donde la energía entra en el circuito y donde vuelve a salir, con una línea discontinua en la media. Al lado, el triángulo de potencias relaciona las potencias activa, reactiva y aparente.",
+        "controlArea": "El área de control tiene controles para R, L y C, la tensión y la frecuencia de fuente, la reproducción y un botón Restablecer todo.",
+        "interactionHint": "Cambia la carga y observa el factor de potencia: un circuito resistivo nunca devuelve energía, mientras que uno puramente reactivo no consume ninguna."
       },
-      "currentDetails": "La pantalla de Potencia está en su estado inicial.",
+      "currentDetails": {
+        "unity": "El factor de potencia es cercano a uno. El circuito es esencialmente resistivo, así que casi toda la potencia aparente realiza trabajo y la potencia instantánea apenas baja de cero.",
+        "lagging": "El factor de potencia está en retraso: el circuito es inductivo, la corriente se retrasa respecto a la tensión de la fuente, y se devuelve energía a la fuente durante parte de cada ciclo.",
+        "leading": "El factor de potencia está en adelanto: el circuito es capacitivo, la corriente se adelanta a la tensión de la fuente, y se devuelve energía a la fuente durante parte de cada ciclo."
+      },
       "controls": {
-        "exampleControl": "Control de ejemplo"
+        "resistance": "Resistencia",
+        "inductance": "Inductancia",
+        "capacitance": "Capacitancia",
+        "sourceVoltage": "Amplitud de la tensión de fuente",
+        "frequency": "Frecuencia de la fuente"
       }
     }
   },

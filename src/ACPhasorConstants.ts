@@ -161,6 +161,53 @@ export const SCOPE_PERIODS_SHOWN = 3;
  */
 export const RESONANCE_PHASE_TOLERANCE_RADIANS = (5 * Math.PI) / 180;
 
+/** Plot size of the current-vs-frequency resonance curve (px). */
+export const RESONANCE_CURVE_SIZE = { width: 540, height: 148 };
+
+/** Plot size of the phase-vs-frequency curve below it (px). */
+export const RESONANCE_PHASE_CURVE_SIZE = { width: 540, height: 92 };
+
+/** Half-extent of the Resonance screen's impedance triangle, in view pixels. */
+export const RESONANCE_IMPEDANCE_DIAL_VIEW_RADIUS = 76;
+
+/**
+ * Element values the Resonance screen opens with, chosen so the screen shows its
+ * phenomenon before anything is touched. The sim-wide defaults (R = 10, L = C = 1)
+ * give Q = 0.1 — a hump so broad it barely reads as a peak at all.
+ *
+ * These give f₀ = 1/(2π√(LC)) ≈ 0.32 Hz, which is the geometric centre of the
+ * 0.02–5 Hz range and therefore the middle of the chart's logarithmic axis, and
+ * Q = √(L/C)/R = 2.5, sharp enough to be unmistakably a resonance. All three sit
+ * inside their ranges with room to move in both directions, so the first thing a
+ * learner does to any of them changes the peak visibly.
+ */
+export const RESONANCE_SCREEN_RESISTANCE_OHMS = 2;
+export const RESONANCE_SCREEN_INDUCTANCE_H = 2.5;
+export const RESONANCE_SCREEN_CAPACITANCE_F = 0.1;
+
+/**
+ * Seconds an automatic frequency sweep takes to cross the whole source range.
+ * The travel is logarithmic, so this is also the time per 2.4 decades: slow
+ * enough that a narrow resonance is not skipped between frames, brisk enough
+ * that the peak comes round again without a wait.
+ */
+export const FREQUENCY_SWEEP_DURATION_S = 14;
+
+// ── Power ─────────────────────────────────────────────────────────────────────
+
+/** Loop size of the circuit diagram on the Power screen (px). */
+export const POWER_CIRCUIT_SIZE = { width: 400, height: 88 };
+
+/**
+ * Plot size of each oscilloscope on the Power screen (px). Narrower than the
+ * other screens' scopes: this screen puts a third column — the power triangle
+ * and its readouts — between the scopes and the controls.
+ */
+export const POWER_SCOPE_SIZE = { width: 335, height: 108 };
+
+/** Half-extent of the Power screen's power triangle, in view pixels. */
+export const POWER_TRIANGLE_DIAL_VIEW_RADIUS = 78;
+
 ACPhasorNamespace.register("ACPhasorConstants", {
   SCREEN_VIEW_MARGIN,
   PANEL_CORNER_RADIUS,
@@ -189,4 +236,14 @@ ACPhasorNamespace.register("ACPhasorConstants", {
   SERIES_SCOPE_SIZE,
   SCOPE_PERIODS_SHOWN,
   RESONANCE_PHASE_TOLERANCE_RADIANS,
+  RESONANCE_CURVE_SIZE,
+  RESONANCE_PHASE_CURVE_SIZE,
+  RESONANCE_IMPEDANCE_DIAL_VIEW_RADIUS,
+  RESONANCE_SCREEN_RESISTANCE_OHMS,
+  RESONANCE_SCREEN_INDUCTANCE_H,
+  RESONANCE_SCREEN_CAPACITANCE_F,
+  FREQUENCY_SWEEP_DURATION_S,
+  POWER_CIRCUIT_SIZE,
+  POWER_SCOPE_SIZE,
+  POWER_TRIANGLE_DIAL_VIEW_RADIUS,
 });

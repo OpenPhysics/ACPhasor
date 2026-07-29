@@ -31,7 +31,28 @@
     "atResonance": "À la résonance",
     "tipToTail": "Bout à bout",
     "voltageTriangle": "Tensions",
-    "impedanceTriangle": "Impédances"
+    "impedanceTriangle": "Impédances",
+    "qualityFactor": "Facteur de qualité Q",
+    "bandwidth": "Largeur de bande",
+    "currentAmplitude": "Courant",
+    "sweep": "Balayer",
+    "stopSweep": "Arrêter",
+    "currentVsFrequency": "Courant selon la fréquence",
+    "phaseVsFrequency": "Phase selon la fréquence",
+    "frequencyAxis": "f (Hz)",
+    "halfPowerBand": "Bande à mi-puissance",
+    "realPower": "Puissance active P",
+    "reactivePower": "Puissance réactive Q",
+    "apparentPower": "Puissance apparente S",
+    "powerFactor": "Facteur de puissance",
+    "powerTriangle": "Triangle des puissances",
+    "instantaneousPower": "Puissance instantanée",
+    "energyDelivered": "Fournie",
+    "energyReturned": "Restituée",
+    "wattsPattern": "{{value}} W",
+    "voltAmperesPattern": "{{value}} VA",
+    "reactivePowerPattern": "{{value}} var",
+    "plainPattern": "{{value}}"
   },
   "a11y": {
     "intro": {
@@ -76,24 +97,41 @@
     },
     "resonance": {
       "screenSummary": {
-        "playArea": "La zone de jeu montre le circuit RLC série balayé en fréquence d'excitation, avec le triangle de phase, ainsi que les courbes d'impédance et de courant en fonction de la fréquence.",
-        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-        "interactionHint": "Balayez la fréquence d'excitation pour trouver la résonance, où les réactances s'annulent et l'angle de phase s'annule."
+        "playArea": "La zone de jeu montre la réponse du circuit RLC série sur toute la plage des fréquences d'excitation : une courbe du courant en fonction de la fréquence, avec son pic de résonance et sa bande à mi-puissance marqués, une courbe de la phase en fonction de la fréquence en dessous, et le triangle des impédances, qui s'aplatit sur l'axe de la résistance à la résonance.",
+        "controlArea": "La zone de contrôle comporte des réglages pour R, L et C, la tension et la fréquence de source, un bouton qui balaie la fréquence sur toute la plage, et un bouton Tout réinitialiser.",
+        "interactionHint": "Balayez la fréquence d'excitation pour trouver la résonance, où les réactances s'annulent et l'angle de phase s'annule, puis changez R pour voir le pic s'affiner ou s'élargir."
       },
-      "currentDetails": "L'écran Résonance est dans son état initial.",
+      "currentDetails": {
+        "below": "La fréquence d'excitation est inférieure à la résonance. Le circuit est capacitif, le courant est en avance sur la tension de source, et le point de fonctionnement se trouve du côté basse fréquence du pic.",
+        "above": "La fréquence d'excitation est supérieure à la résonance. Le circuit est inductif, le courant est en retard sur la tension de source, et le point de fonctionnement se trouve du côté haute fréquence du pic.",
+        "at": "La fréquence d'excitation est à la résonance. Les réactances s'annulent, l'impédance se réduit à la résistance, et le courant est maximal."
+      },
       "controls": {
-        "exampleControl": "Contrôle d'exemple"
+        "resistance": "Résistance",
+        "inductance": "Inductance",
+        "capacitance": "Capacité",
+        "sourceVoltage": "Amplitude de la tension de source",
+        "frequency": "Fréquence de la source",
+        "sweep": "Balayer la fréquence de la source sur toute sa plage"
       }
     },
     "power": {
       "screenSummary": {
-        "playArea": "La zone de jeu montre la puissance instantanée sur un cycle, avec la puissance active moyenne et la composante réactive oscillante ombrées séparément et un affichage du facteur de puissance.",
-        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-        "interactionHint": "Réglez la charge pour voir comment change le facteur de puissance et comment une charge réactive ne fournit aucune énergie nette."
+        "playArea": "La zone de jeu montre un circuit RLC série, un oscilloscope avec la tension de source et le courant, et en dessous la puissance instantanée p égale v fois i, ombrée là où l'énergie entre dans le circuit et là où elle en ressort, avec une ligne pointillée à la moyenne. À côté, le triangle des puissances relie les puissances active, réactive et apparente.",
+        "controlArea": "La zone de contrôle comporte des réglages pour R, L et C, la tension et la fréquence de source, la lecture, et un bouton Tout réinitialiser.",
+        "interactionHint": "Changez la charge et observez le facteur de puissance : un circuit résistif ne restitue jamais d'énergie, tandis qu'un circuit purement réactif n'en consomme aucune."
       },
-      "currentDetails": "L'écran Puissance est dans son état initial.",
+      "currentDetails": {
+        "unity": "Le facteur de puissance est proche de un. Le circuit est essentiellement résistif : presque toute la puissance apparente produit du travail et la puissance instantanée passe à peine sous zéro.",
+        "lagging": "Le facteur de puissance est en retard : le circuit est inductif, le courant est en retard sur la tension de source, et de l'énergie est restituée à la source pendant une partie de chaque cycle.",
+        "leading": "Le facteur de puissance est en avance : le circuit est capacitif, le courant est en avance sur la tension de source, et de l'énergie est restituée à la source pendant une partie de chaque cycle."
+      },
       "controls": {
-        "exampleControl": "Contrôle d'exemple"
+        "resistance": "Résistance",
+        "inductance": "Inductance",
+        "capacitance": "Capacité",
+        "sourceVoltage": "Amplitude de la tension de source",
+        "frequency": "Fréquence de la source"
       }
     }
   },

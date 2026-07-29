@@ -79,6 +79,78 @@ describe("WaveformNode", () => {
     expect(scope.bounds.equals(before)).toBe(true);
   });
 
+  describe("an offset, shaded trace (instantaneous power)", () => {
+    /** The p(t) scope on the Power screen: 2ω sinusoid on a DC offset. */
+    function createPowerScope(): WaveformNode {
+      return new WaveformNode({
+        viewWidth: 470,
+        viewHeight: 88,
+        timeWindow: 3,
+        showCursor: true,
+        traces: [
+          {
+            stroke: "violet",
+            label: "p(t)",
+            units: "W",
+            autoScale: true,
+            fill: "teal",
+            negativeFill: "indigo",
+            showAverageLine: true,
+            captionValue: "average",
+          },
+        ],
+      });
+    }
+
+    it("does not change size as the offset and amplitude move", () => {
+      const scope = createPowerScope();
+      const before = scope.bounds.copy();
+
+      // Resonance (all real, never negative) through purely reactive (centred on
+      // zero), across the decades that p = v·i spans as the load changes.
+      for (const [amplitude, offset] of [
+        [0.5, 0.5],
+        [0.5, 0],
+        [50, 12],
+        [0.002, 0.001],
+      ]) {
+        scope.setTrace(0, amplitude as number, 4 * Math.PI, 0, offset as number);
+        expect(scope.bounds.equals(before)).toBe(true);
+      }
+    });
+
+    it("does not change size when the shading has no zero crossing to split at", () => {
+      const scope = createPowerScope();
+      const before = scope.bounds.copy();
+
+      // Entirely above zero (unity power factor), then entirely below.
+      scope.setTrace(0, 1, 4 * Math.PI, 0, 5);
+      expect(scope.bounds.equals(before)).toBe(true);
+      scope.setTrace(0, 1, 4 * Math.PI, 0, -5);
+      expect(scope.bounds.equals(before)).toBe(true);
+    });
+
+    it("does not change size when the offset trace's window is retuned", () => {
+      const scope = createPowerScope();
+      scope.setTrace(0, 2, 4 * Math.PI, 0, 1);
+      const before = scope.bounds.copy();
+
+      for (const seconds of [0.6, 3, 150]) {
+        scope.setTimeWindow(seconds);
+        expect(scope.bounds.equals(before)).toBe(true);
+      }
+    });
+
+    it("leaves an ordinary trace unshifted when no offset is passed", () => {
+      // setTrace's offset argument is optional, and the earlier screens rely on
+      // it defaulting to zero.
+      const scope = createDualTraceScope();
+      const before = scope.bounds.copy();
+      scope.setTrace(0, 5, 2 * Math.PI, 0);
+      expect(scope.bounds.equals(before)).toBe(true);
+    });
+  });
+
   it("moves the playhead without resizing, and tolerates times outside the window", () => {
     const scope = createDualTraceScope();
     scope.setTrace(0, 5, 2 * Math.PI, 0);

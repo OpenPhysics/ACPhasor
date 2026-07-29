@@ -264,6 +264,30 @@ const ACPhasorColors = {
     default: "#69f0ae",
     projector: "#00695c",
   }),
+
+  // ── Power ────────────────────────────────────────────────────────────────────
+  // The power triangle deliberately borrows the impedance triangle's colors — P
+  // takes the resistor accent, Q the inductor accent, S the impedance accent —
+  // because it *is* that triangle, scaled by ½·I². Only the instantaneous-power
+  // trace and its two shaded lobes need colors of their own.
+
+  /** The p(t) = v·i trace on the Power screen's lower scope. */
+  powerColorProperty: new ProfileColorProperty(ACPhasorNamespace, "power", {
+    default: "#ce93d8",
+    projector: "#6a1b9a",
+  }),
+
+  /** Shading where p(t) > 0: energy flowing from the source into the circuit. */
+  energyDeliveredColorProperty: new ProfileColorProperty(ACPhasorNamespace, "energyDelivered", {
+    default: "#26a69a",
+    projector: "#00695c",
+  }),
+
+  /** Shading where p(t) < 0: energy the reactive elements hand back to the source. */
+  energyReturnedColorProperty: new ProfileColorProperty(ACPhasorNamespace, "energyReturned", {
+    default: "#7986cb",
+    projector: "#3949ab",
+  }),
 };
 
 export default ACPhasorColors;

@@ -7,7 +7,7 @@
  * a block scope) so local strong references die when the helper returns.
  */
 
-import { Property, StringProperty } from "scenerystack/axon";
+import { DerivedProperty, Property, StringProperty } from "scenerystack/axon";
 import { Range, Vector2 } from "scenerystack/dot";
 import { ModelViewTransform2 } from "scenerystack/phetcommon";
 import { describe, expect, it } from "vitest";
@@ -17,6 +17,7 @@ import { PhaseArcNode } from "../src/common/view/PhaseArcNode.js";
 import { PhasorChainNode } from "../src/common/view/PhasorChainNode.js";
 import { PhasorNode } from "../src/common/view/PhasorNode.js";
 import { SimNumberControl } from "../src/common/view/SimNumberControl.js";
+import { PowerModel } from "../src/power/model/PowerModel.js";
 
 /**
  * Force garbage collection with multiple passes. When `earlyExitRef` is supplied
@@ -144,6 +145,40 @@ describe("Memory leak regression", () => {
       node.dispose();
       expect(fromAngle.hasListeners()).toBe(false);
       expect(toAngle.hasListeners()).toBe(false);
+    });
+
+    it("a power triangle built on a PowerModel lets go of it on dispose", () => {
+      // The shape the Power screen actually builds: a chain of Properties derived
+      // from the model, feeding a PhasorChainNode. A missed unlink here would
+      // leave the model redrawing a triangle belonging to a discarded screen.
+      const model = new PowerModel();
+      const scale = new DerivedProperty([model.apparentPowerPhasorProperty], () => 1);
+      const scaledReal = new DerivedProperty([model.realPowerPhasorProperty, scale], (phasor) => phasor);
+      const scaledReactive = new DerivedProperty([model.reactivePowerPhasorProperty, scale], (phasor) => phasor);
+      const scaledApparent = new DerivedProperty([model.apparentPowerPhasorProperty, scale], (phasor) => phasor);
+
+      const node = new PhasorChainNode(
+        [
+          { property: scaledReal, fill: "red", label: "P" },
+          { property: scaledReactive, fill: "green", label: "Q" },
+        ],
+        modelViewTransform,
+        { resultant: { property: scaledApparent, fill: "orange", label: "S" } },
+      );
+      expect(scaledReal.hasListeners()).toBe(true);
+      expect(scaledApparent.hasListeners()).toBe(true);
+
+      node.dispose();
+      expect(scaledReal.hasListeners()).toBe(false);
+      expect(scaledReactive.hasListeners()).toBe(false);
+      expect(scaledApparent.hasListeners()).toBe(false);
+
+      // And the model's own Properties go quiet once the derived ones are gone.
+      for (const derived of [scaledReal, scaledReactive, scaledApparent, scale]) {
+        derived.dispose();
+      }
+      expect(model.realPowerPhasorProperty.hasListeners()).toBe(false);
+      expect(model.apparentPowerPhasorProperty.hasListeners()).toBe(false);
     });
 
     it("a logarithmic SimNumberControl unbridges from its model Property", () => {
