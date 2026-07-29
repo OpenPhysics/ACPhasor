@@ -31,7 +31,28 @@
     "atResonance": "At resonance",
     "tipToTail": "Tip to tail",
     "voltageTriangle": "Voltages",
-    "impedanceTriangle": "Impedances"
+    "impedanceTriangle": "Impedances",
+    "qualityFactor": "Quality factor Q",
+    "bandwidth": "Bandwidth",
+    "currentAmplitude": "Current",
+    "sweep": "Sweep",
+    "stopSweep": "Stop",
+    "currentVsFrequency": "Current vs. frequency",
+    "phaseVsFrequency": "Phase vs. frequency",
+    "frequencyAxis": "f (Hz)",
+    "halfPowerBand": "Half-power band",
+    "realPower": "Real power P",
+    "reactivePower": "Reactive power Q",
+    "apparentPower": "Apparent power S",
+    "powerFactor": "Power factor",
+    "powerTriangle": "Power triangle",
+    "instantaneousPower": "Instantaneous power",
+    "energyDelivered": "Delivered",
+    "energyReturned": "Returned",
+    "wattsPattern": "{{value}} W",
+    "voltAmperesPattern": "{{value}} VA",
+    "reactivePowerPattern": "{{value}} var",
+    "plainPattern": "{{value}}"
   },
   "a11y": {
     "intro": {
@@ -76,24 +97,41 @@
     },
     "resonance": {
       "screenSummary": {
-        "playArea": "The play area shows the series RLC circuit swept across driving frequency, with the phase triangle alongside impedance-versus-frequency and current-versus-frequency curves.",
-        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-        "interactionHint": "Sweep the driving frequency to find resonance, where the reactances cancel and the phase angle goes to zero."
+        "playArea": "The play area shows how the series RLC circuit responds across the whole range of driving frequencies: a current-versus-frequency curve with its resonant peak and half-power band marked, a phase-versus-frequency curve below it, and the impedance triangle, which flattens onto the resistance axis at resonance.",
+        "controlArea": "The control area has controls for R, L, and C, the source voltage and frequency, a button that sweeps the frequency across the range, and a Reset All button.",
+        "interactionHint": "Sweep the driving frequency to find resonance, where the reactances cancel and the phase angle goes to zero, then change R to see the peak sharpen or broaden."
       },
-      "currentDetails": "The Resonance screen is in its initial state.",
+      "currentDetails": {
+        "below": "The drive frequency is below resonance. The circuit is capacitive, the current leads the source voltage, and the operating point is on the low-frequency side of the peak.",
+        "above": "The drive frequency is above resonance. The circuit is inductive, the current lags the source voltage, and the operating point is on the high-frequency side of the peak.",
+        "at": "The drive frequency is at resonance. The reactances cancel, the impedance is just the resistance, and the current is at its maximum."
+      },
       "controls": {
-        "exampleControl": "Example control"
+        "resistance": "Resistance",
+        "inductance": "Inductance",
+        "capacitance": "Capacitance",
+        "sourceVoltage": "Source voltage amplitude",
+        "frequency": "Source frequency",
+        "sweep": "Sweep the source frequency across its range"
       }
     },
     "power": {
       "screenSummary": {
-        "playArea": "The play area shows the instantaneous power over a cycle, with the average real power and the oscillating reactive component shaded separately and a power-factor readout.",
-        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-        "interactionHint": "Adjust the load to see how the power factor changes and how a reactive load delivers zero net energy."
+        "playArea": "The play area shows a series RLC circuit, an oscilloscope with the source voltage and the current, and below it the instantaneous power p equals v times i, shaded where energy flows into the circuit and where it flows back out, with a dashed line at the average. Beside them the power triangle relates real, reactive, and apparent power.",
+        "controlArea": "The control area has controls for R, L, and C, the source voltage and frequency, playback, and a Reset All button.",
+        "interactionHint": "Change the load and watch the power factor: a resistive circuit never returns energy, while a purely reactive one consumes none at all."
       },
-      "currentDetails": "The Power screen is in its initial state.",
+      "currentDetails": {
+        "unity": "The power factor is close to one. The circuit is essentially resistive, so almost all the apparent power does work and the instantaneous power barely dips below zero.",
+        "lagging": "The power factor is lagging: the circuit is inductive, the current lags the source voltage, and energy is handed back to the source during part of every cycle.",
+        "leading": "The power factor is leading: the circuit is capacitive, the current leads the source voltage, and energy is handed back to the source during part of every cycle."
+      },
       "controls": {
-        "exampleControl": "Example control"
+        "resistance": "Resistance",
+        "inductance": "Inductance",
+        "capacitance": "Capacitance",
+        "sourceVoltage": "Source voltage amplitude",
+        "frequency": "Source frequency"
       }
     }
   },

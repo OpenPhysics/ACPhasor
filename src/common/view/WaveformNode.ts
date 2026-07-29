@@ -27,6 +27,13 @@
  * single-trace scope) whenever a phasor or the frequency changes, and
  * {@link setCursorTime} each animation frame to slide the playhead along.
  *
+ * A trace may also ride on a constant `offset` and shade the area between itself
+ * and the zero line, in two colors split at the crossings. That combination is
+ * what instantaneous power needs: p(t) = P + S·cos(2ωt − φ) is a sinusoid at
+ * twice the drive frequency sitting on the real power, the dashed average line
+ * *is* P, and the two shaded colors separate the energy delivered to the circuit
+ * from the energy handed back.
+ *
  * ── Usage ─────────────────────────────────────────────────────────────────────
  *
  *   // Single trace — `stroke` / `label` / `units` describe it directly.
@@ -44,6 +51,14 @@
  *   scope.setTrace( 0, voltage.amplitude, omega, voltage.phase );
  *   scope.setTrace( 1, current.amplitude, omega, current.phase );
  *   // in step(): scope.setCursorTime( model.timer.timeProperty.value );
+ *
+ *   // Instantaneous power: a 2ω sinusoid on a DC offset, shaded and averaged.
+ *   const scope = new WaveformNode( {
+ *     traces: [ { stroke: powerColor, label: "p(t)", units: "W", autoScale: true,
+ *                 fill: deliveredColor, negativeFill: returnedColor,
+ *                 showAverageLine: true, captionValue: "average" } ],
+ *   } );
+ *   scope.setTrace( 0, apparentPower, 2 * omega, -phase, realPower );
  */
 
 import {
@@ -58,9 +73,10 @@ import {
 import { Bounds2, Range, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
 import { Orientation } from "scenerystack/phet-core";
-import { Circle, type Font, HBox, Line, Node, type TColor, Text } from "scenerystack/scenery";
+import { Circle, type Font, HBox, Line, Node, Path, type TColor, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
+import { formatTickValue, niceStep } from "./axisScale.js";
 
 /** Width reserved outside the chart for a set of vertical tick labels (px). */
 const Y_LABEL_GUTTER = 34;
@@ -87,6 +103,13 @@ export type WaveformTraceOptions = {
   /** Signal amplitude that reaches the top/bottom edge, when not auto-scaling. */
   maxAmplitude?: number;
   /**
+   * Constant the sinusoid rides on, so the trace is offset + A·cos(ωt + φ).
+   * Instantaneous power needs it: p(t) is a sinusoid at 2ω sitting on the real
+   * power, and that offset is the only part of it that does not average away.
+   * Usually set per frame through {@link WaveformNode.setTrace}.
+   */
+  offset?: number;
+  /**
    * When true, this trace's axis rescales to the incoming amplitude so the trace
    * always fills the plot, snapping to a 1–2–5 sequence rather than following the
    * amplitude exactly. Use for signals whose amplitude varies widely (e.g.
@@ -95,6 +118,29 @@ export type WaveformTraceOptions = {
   autoScale?: boolean;
   /** Smallest full-scale value `autoScale` may choose; keeps tiny signals from filling the plot. */
   minimumFullScale?: number;
+  /**
+   * Shade the area between the trace and the zero line where the trace is
+   * positive. For instantaneous power that area *is* the energy delivered to the
+   * circuit over the interval, so the shape carries the quantity.
+   */
+  fill?: TColor;
+  /**
+   * Shading where the trace is negative — energy flowing back out of the
+   * circuit, which is worth a different color from energy going in. Defaults to
+   * {@link fill}.
+   */
+  negativeFill?: TColor;
+  /**
+   * Draw a dashed horizontal line at the trace's offset. On a p(t) trace that
+   * line is the real power: the part of the swing that does not average away.
+   */
+  showAverageLine?: boolean;
+  /**
+   * Which number the caption reports: the signal's peak amplitude (the default),
+   * or its average — the offset it swings about, which is the meaningful figure
+   * for a trace that has one.
+   */
+  captionValue?: "peak" | "average";
 };
 
 type SelfOptions = {
@@ -174,10 +220,18 @@ type Trace = {
   axis: VerticalAxis;
   cursorDot: Circle | null;
   peakText: Text | null;
+  /** Shading between the trace and zero, above and below the line. */
+  positiveFillPath: Path | null;
+  negativeFillPath: Path | null;
+  /** Dashed line at the trace's offset — its average value. */
+  averageLine: Line | null;
   units: string | null;
+  captionValue: "peak" | "average";
   amplitude: number;
   angularFrequency: number;
   phase: number;
+  /** Constant the sinusoid rides on; the trace is offset + A·cos(ωt + φ). */
+  offset: number;
 };
 
 export class WaveformNode extends Node {
@@ -363,6 +417,32 @@ export class WaveformNode extends Node {
 
     this.traces = traceOptions.map((trace) => {
       const axis = (trace.axis ?? "left") === "right" && this.rightAxis ? this.rightAxis : this.leftAxis;
+
+      // Shading goes down first, then the average line, then the curve on top of
+      // both — the curve is the boundary of its own shaded area and must stay
+      // crisp against it.
+      const positiveFillPath = trace.fill ? new Path(null, { fill: trace.fill, opacity: 0.35 }) : null;
+      const negativeFillPath = trace.fill
+        ? new Path(null, { fill: trace.negativeFill ?? trace.fill, opacity: 0.35 })
+        : null;
+      if (positiveFillPath) {
+        clippedLayer.addChild(positiveFillPath);
+      }
+      if (negativeFillPath) {
+        clippedLayer.addChild(negativeFillPath);
+      }
+
+      const averageLine = trace.showAverageLine
+        ? new Line(0, 0, options.viewWidth, 0, {
+            stroke: trace.stroke,
+            lineWidth: 1.5,
+            lineDash: [6, 4],
+          })
+        : null;
+      if (averageLine) {
+        clippedLayer.addChild(averageLine);
+      }
+
       const linePlot = new LinePlot(axis.chartTransform, [], {
         stroke: trace.stroke,
         lineWidth: 2,
@@ -375,10 +455,15 @@ export class WaveformNode extends Node {
           ? new Circle(4, { fill: trace.stroke, center: axis.chartTransform.modelToViewXY(0, 0) })
           : null,
         peakText: options.showPeakValue ? new Text("", { font: options.captionFont, fill: trace.stroke }) : null,
+        positiveFillPath: positiveFillPath,
+        negativeFillPath: negativeFillPath,
+        averageLine: averageLine,
         units: trace.units ?? null,
+        captionValue: trace.captionValue ?? "peak",
         amplitude: 0,
         angularFrequency: 0,
         phase: 0,
+        offset: trace.offset ?? 0,
       };
     });
 
@@ -450,7 +535,7 @@ export class WaveformNode extends Node {
   }
 
   private valueAt(trace: Trace, time: number): number {
-    return trace.amplitude * Math.cos(trace.angularFrequency * time + trace.phase);
+    return trace.offset + trace.amplitude * Math.cos(trace.angularFrequency * time + trace.phase);
   }
 
   private updateTrace(trace: Trace): void {
@@ -460,6 +545,44 @@ export class WaveformNode extends Node {
       dataSet.push(new Vector2(time, this.valueAt(trace, time)));
     }
     trace.linePlot.setDataSet(dataSet);
+    this.updateShading(trace, dataSet);
+
+    if (trace.averageLine) {
+      const y = trace.axis.chartTransform.modelToViewY(trace.offset);
+      trace.averageLine.setLine(0, y, trace.axis.chartTransform.viewWidth, y);
+    }
+  }
+
+  /**
+   * Redraw the area between a trace and the zero line, in two colors split at
+   * the zero crossings. Each run of constant sign becomes one closed polygon
+   * that follows the curve out and returns along the axis.
+   */
+  private updateShading(trace: Trace, samples: Vector2[]): void {
+    if (!(trace.positiveFillPath && trace.negativeFillPath)) {
+      return;
+    }
+    const transform = trace.axis.chartTransform;
+    const positive = new Shape();
+    const negative = new Shape();
+
+    for (const run of signedRuns(samples)) {
+      const first = run.points[0];
+      const last = run.points[run.points.length - 1];
+      if (!(first && last) || run.points.length < 2) {
+        continue;
+      }
+      const shape = run.sign < 0 ? negative : positive;
+      shape.moveToPoint(transform.modelToViewXY(first.x, 0));
+      for (const point of run.points) {
+        shape.lineToPoint(transform.modelToViewXY(point.x, point.y));
+      }
+      shape.lineToPoint(transform.modelToViewXY(last.x, 0));
+      shape.close();
+    }
+
+    trace.positiveFillPath.shape = positive;
+    trace.negativeFillPath.shape = negative;
   }
 
   /** Re-space one axis's grid, ticks and labels after a full-scale change. */
@@ -478,7 +601,8 @@ export class WaveformNode extends Node {
     if (!trace.peakText) {
       return;
     }
-    const value = formatTickValue(Math.abs(trace.amplitude), trace.axis.scale.fullScale / 2);
+    const reported = trace.captionValue === "average" ? trace.offset : Math.abs(trace.amplitude);
+    const value = formatTickValue(reported, trace.axis.scale.fullScale / 2);
     trace.peakText.string = trace.units === null ? value : `${value} ${trace.units}`;
   }
 
@@ -495,10 +619,13 @@ export class WaveformNode extends Node {
   }
 
   /**
-   * Set trace `index` to the sinusoid A·cos(ωt + φ). Redraws it immediately, and
-   * rescales its axis when that axis auto-scales.
+   * Set trace `index` to the sinusoid offset + A·cos(ωt + φ). Redraws it
+   * immediately, and rescales its axis when that axis auto-scales.
+   *
+   * `offset` is zero for an ordinary signal; instantaneous power is the case
+   * that needs it, riding at 2ω on top of the real power.
    */
-  public setTrace(index: number, amplitude: number, angularFrequency: number, phase: number): void {
+  public setTrace(index: number, amplitude: number, angularFrequency: number, phase: number, offset = 0): void {
     const trace = this.traces[index];
     if (!trace) {
       return;
@@ -506,12 +633,16 @@ export class WaveformNode extends Node {
     trace.amplitude = amplitude;
     trace.angularFrequency = angularFrequency;
     trace.phase = phase;
+    trace.offset = offset;
 
     if (trace.axis.autoScale) {
       // An auto-scaling axis follows the largest of the traces on it, so two
-      // signals sharing an axis stay comparable.
+      // signals sharing an axis stay comparable. An offset trace is measured
+      // from zero to its furthest excursion, not by its amplitude alone.
       const peak = Math.max(
-        ...this.traces.filter((other) => other.axis === trace.axis).map((other) => Math.abs(other.amplitude)),
+        ...this.traces
+          .filter((other) => other.axis === trace.axis)
+          .map((other) => Math.abs(other.offset) + Math.abs(other.amplitude)),
       );
       const scale = Math.max(niceStep(peak), trace.axis.minimumFullScale);
       if (scale !== trace.axis.scale.fullScale) {
@@ -592,25 +723,47 @@ export class WaveformNode extends Node {
 }
 
 /**
- * Round a positive value up to the next entry of the 1–2–5 sequence
- * (…, 0.2, 0.5, 1, 2, 5, 10, …). Used both for auto-scaled full scales and for
- * tick spacing, so axis labels are always round numbers.
+ * Split a sampled curve into runs of constant sign, cutting each run at the
+ * interpolated zero crossing. Shading the runs separately is what lets p(t) show
+ * energy delivered and energy returned in two colors, with the boundary landing
+ * exactly on the zero line rather than a sample short of it.
  */
-function niceStep(value: number): number {
-  if (!(value > 0 && Number.isFinite(value))) {
-    return 1;
-  }
-  const decade = 10 ** Math.floor(Math.log10(value));
-  const normalized = value / decade; // in [1, 10)
-  const step = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
-  return step * decade;
-}
+function signedRuns(samples: Vector2[]): { sign: number; points: Vector2[] }[] {
+  const runs: { sign: number; points: Vector2[] }[] = [];
+  let points: Vector2[] = [];
+  let sign = 0;
 
-/**
- * Format an axis value with just enough decimals to distinguish neighbouring
- * ticks, trimming trailing zeros so labels stay short ("2.5", "0.05", "10").
- */
-function formatTickValue(value: number, spacing: number): string {
-  const decimals = Math.max(0, Math.min(6, Math.ceil(-Math.log10(spacing)) + 1));
-  return Number(value.toFixed(decimals)).toString();
+  for (let i = 0; i < samples.length; i++) {
+    const sample = samples[i];
+    if (!sample) {
+      continue;
+    }
+    const sampleSign = Math.sign(sample.y);
+    const previous = samples[i - 1];
+
+    if (points.length === 0) {
+      points.push(sample);
+      sign = sampleSign;
+      continue;
+    }
+    if (previous && sampleSign !== 0 && sign !== 0 && sampleSign !== sign) {
+      // Linear crossing between the two samples; both runs share the point, so
+      // no sliver of background shows through between them.
+      const t = previous.x + ((sample.x - previous.x) * (0 - previous.y)) / (sample.y - previous.y);
+      const crossing = new Vector2(t, 0);
+      points.push(crossing);
+      runs.push({ sign: sign, points: points });
+      points = [crossing, sample];
+      sign = sampleSign;
+      continue;
+    }
+    points.push(sample);
+    if (sign === 0) {
+      sign = sampleSign;
+    }
+  }
+  if (points.length > 1) {
+    runs.push({ sign: sign, points: points });
+  }
+  return runs;
 }

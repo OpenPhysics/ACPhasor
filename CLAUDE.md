@@ -18,8 +18,8 @@ Forked from `TemplateSingleSim`.
 | `src/i18n/StringManager.ts` | Singleton localized string accessor |
 | `src/intro/` | Screen 1 — single element: pick R/L/C, rotating V/I phasor clock with phase arc + projections, dual-trace v(t)/i(t) scope |
 | `src/series-rlc/` | Screen 2 — series RLC: rotating voltage triangle + static impedance triangle (tip-to-tail checkbox), scope, resonance callout |
-| `src/resonance/` | Screen 3 — resonance & frequency sweep: adapts Resonance-sim driven-oscillator math (stub) |
-| `src/power/` | Screen 4 — power in AC circuits: p(t)=v·i, real/reactive power, power factor (stub) |
+| `src/resonance/` | Screen 3 — resonance & frequency sweep: |I| and φ vs. log f with peak / half-power band marked, impedance triangle, auto-sweep button |
+| `src/power/` | Screen 4 — power in AC circuits: p(t)=v·i shaded into delivered/returned lobes, power triangle P+jQ=S, power factor |
 | `src/common/ACPhasorScreenIcons.ts` | Home / nav icons for all four screens |
 | `src/common/SimPanel.ts` | Pre-themed `Panel` wrapper (uses `ACPhasorColors` automatically) |
 | `src/common/SimButtonOptions.ts` | Flat button-appearance option bundles + light-control-surface combo-box options |
@@ -27,11 +27,14 @@ Forked from `TemplateSingleSim`.
 | `src/common/model/Phasor.ts` | Immutable AC phasor value object (amplitude/phase over dot `Complex`) |
 | `src/common/model/Impedance.ts` | R/L/C frequency-domain impedances + series & resonance helpers |
 | `src/common/model/ACSourceModel.ts` | Composable sinusoidal-source model (amplitude, frequency, ω, voltage phasor) |
+| `src/common/model/RlcCircuitModel.ts` | The series RLC loop shared by screens 2–4: element voltages, Z, I, φ, f₀, Q, half-power band, and off-frequency response helpers |
 | `src/common/view/PhasorNode.ts` | Arrow that tracks a `Property<Phasor>`; optional free `tailProperty` and dashed axis projection |
 | `src/common/view/PhasorChainNode.ts` | An ordered set of phasors drawn head-to-tail or from a common origin, switched by a Property |
 | `src/common/view/PhaseArcNode.ts` | The labelled wedge between two angle Properties |
 | `src/common/view/PhasorDiagramNode.ts` | Complex-plane backdrop (axes/grid) that supplies the phasor transform |
-| `src/common/view/WaveformNode.ts` | Bamboo oscilloscope: one or more sinusoids against two independent y-axes, shared playhead, frozen footprint, quantized autoScale, retunable time window |
+| `src/common/view/WaveformNode.ts` | Bamboo oscilloscope: one or more sinusoids against two independent y-axes, shared playhead, frozen footprint, quantized autoScale, retunable time window; a trace may ride a DC offset and shade to zero in two colors |
+| `src/common/view/FrequencyResponseNode.ts` | Bamboo chart of a quantity vs. *frequency* on a log axis, with operating-point marker, f₀ line and half-power band |
+| `src/common/view/axisScale.ts` | The 1–2–5 `niceStep` / `formatTickValue` pair both charts scale their axes with |
 | `src/common/view/SimNumberControl.ts` | Pre-themed `NumberControl` (dark-panel title + light value badge + units pattern); `logarithmic` for decade-spanning ranges |
 | `src/common/view/SimReadout.ts` | One "label + value badge" row for info panels |
 | `src/common/view/CircuitDiagramNode.ts` | Pictorial single-loop circuit: wire, source, element slots, flowing charge |
@@ -118,6 +121,14 @@ these rather than re-deriving the complex math:
 - **`ACSourceModel`** — composable source: `amplitudeProperty`, `frequencyProperty`,
   derived `angularFrequencyProperty` (2πf) and `voltagePhasorProperty`. Compose it into
   a screen model (`public readonly source = new ACSourceModel()`), don't extend it.
+- **`RlcCircuitModel`** — the whole series loop, composed by screens 2, 3 and 4
+  (`public readonly circuit = new RlcCircuitModel()`). Never re-derive Z, I, the element
+  voltages, f₀, Q or the half-power edges in a screen model; add them here if they are
+  missing. Pass `{ resistance, inductance, capacitance }` where a screen needs to open
+  on a particular corner of the R–L–C space (the Resonance screen does, so that its
+  curve has a visible peak in it from the start). Its `impedanceAt` / `currentAmplitudeAt`
+  / `phaseAt` answer for frequencies the circuit is *not* being driven at, without
+  touching any Property — that is what a response curve samples.
 - **`PhasorDiagramNode`** builds the complex-plane transform; pass its
   `modelViewTransform` to each **`PhasorNode`**, **`PhasorChainNode`** or
   **`PhaseArcNode`** you `addChild`. **`WaveformNode`** is an imperative scope — call
@@ -171,7 +182,29 @@ one chart — and sharing the time base is the point, because the phase differen
 becomes a horizontal offset you can point at. Each trace's caption is drawn in its own
 color, so no separate legend is needed.
 
+A trace can also carry a DC `offset`, shade the area between itself and zero (`fill` /
+`negativeFill`, split at the crossings), draw a dashed line at that offset
+(`showAverageLine`) and caption the average rather than the peak
+(`captionValue: "average"`). That combination is what the Power screen's lower scope is:
+p(t) = P + S·cos(2ωt − φ) is a sinusoid at twice the drive frequency sitting on the real
+power, and the two shaded colors separate energy delivered from energy handed back.
+
 `tests/WaveformNode.test.ts` guards the frozen footprint against all of this.
+
+#### `FrequencyResponseNode`
+
+The same three rules, one axis over: the horizontal axis is **log₁₀(frequency)** rather
+than time, so each decade of the 0.02–5 Hz range gets equal width and the sub-hertz region
+where every resonance lives is legible. Also imperative — `setCurve(f => …)` resamples,
+`setMarkerFrequency(f)` slides the operating point along the curve, `setResonantFrequency`
+and `setBand` mark f₀ and the half-power band.
+
+Keep the curve and the marker on separate updates, as the Resonance screen does: the curve
+is a function of R, L, C and the source amplitude only, so a sweep can re-mark it 60 times
+a second while the (much more expensive) resample happens only when the circuit changes.
+Take the band edges from the model's `lower`/`upperHalfPowerFrequencyProperty` rather than
+computing f₀ ± Δf/2 — the two agree only at high Q, and this sim's L–C ranges reach well
+below that.
 
 Physics defaults and ranges (amplitude, frequency, R/L/C) live in `ACPhasorConstants.ts`.
 The frequency range spans 2.4 decades, so its control is built with
@@ -275,7 +308,11 @@ Fleet-standard Vitest layout (keep when forking):
 | `tests/setup.ts` | Canvas / AudioContext mocks + `init({ name: "…" })` before SceneryStack imports |
 | `tests/TimeModel.test.ts` | Clock unit tests |
 | `tests/{Phasor,Impedance,ACSourceModel,IntroModel,SeriesRlcModel}.test.ts` | Physics: Ohm's law, KVL, the regimes, resonance, triangle similarity |
-| `tests/WaveformNode.test.ts` | Frozen footprint under rescale / retune, independent y-axes |
+| `tests/RlcCircuitModel.test.ts` | The shared loop: Q, exact half-power edges, response helpers agreeing with the live Properties |
+| `tests/ResonanceModel.test.ts` | The sweep: logarithmic travel, range clamping, wrap, and picking up an outside frequency change |
+| `tests/PowerModel.test.ts` | P/Q/S, power factor, and P as the *numerically integrated* average of v·i |
+| `tests/WaveformNode.test.ts` | Frozen footprint under rescale / retune, independent y-axes, offset + shaded traces |
+| `tests/FrequencyResponseNode.test.ts` | Frozen footprint under curve rescale, marker travel, band and non-finite samples |
 | `tests/SimNumberControl.test.ts` | The logarithmic-slider bridge, including both ends of the range |
 | `tests/memory-leak.test.ts` | WeakRef + `forceGC` dispose regression, plus listener-detach checks for view nodes |
 | `tests/fuzz/fuzz.spec.ts` | Optional Playwright fuzz smoke via joist `?fuzz` |
