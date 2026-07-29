@@ -273,6 +273,9 @@ export class WaveformNode extends Node {
       showCursor: false,
       showPeakValue: true,
       showTimeAxisLabels: true,
+      // Quantity symbol plus SI unit, deliberately not localized — same
+      // convention as the "Re"/"Im" axes of PhasorDiagramNode. Override it to
+      // pass a localized string where a screen wants words instead.
       timeAxisLabel: "t (s)",
       labelFont: new PhetFont(10),
       captionFont: new PhetFont(12),

@@ -122,6 +122,89 @@ describe("PowerModel", () => {
     });
   });
 
+  /**
+   * The Power screen draws p(t) twice over. The model multiplies the two signals
+   * point by point ({@link PowerModel.instantaneousPowerAt}); the view hands the
+   * scope one sinusoid instead —
+   *
+   *   powerScope.setTrace( POWER_TRACE, apparent, 2·ω, φᵥ + φᵢ, real )
+   *
+   * — which is the same thing only if the identity behind it is right. Nothing
+   * else in the suite touches the view's form, so a dropped factor of two or a
+   * flipped phase sign there would draw a wrong curve with every readout beside
+   * it still correct. This pins the view's line to the model's product.
+   */
+  describe("the trace the view builds", () => {
+    /** The scope's p(t): a sinusoid at 2ω of amplitude S, riding on P. */
+    function traceValueAt(model: PowerModel, time: number): number {
+      const angularFrequency = model.circuit.source.angularFrequencyProperty.value;
+      const voltagePhase = model.circuit.voltagePhasorProperty.value.phase;
+      const currentPhase = model.circuit.currentPhasorProperty.value.phase;
+      return (
+        model.realPowerProperty.value +
+        model.apparentPowerProperty.value * Math.cos(2 * angularFrequency * time + voltagePhase + currentPhase)
+      );
+    }
+
+    it("matches v·i point for point, across the regimes", () => {
+      const model = new PowerModel();
+      const resonant = model.circuit.resonantFrequencyProperty.value;
+
+      // Below, at and above resonance: φ runs from capacitive through zero to
+      // inductive, so a sign error in the phase reference cannot hide in any of
+      // them at once.
+      for (const frequency of [resonant / 4, resonant, resonant * 4]) {
+        model.circuit.source.frequencyProperty.value = frequency;
+        const period = (2 * Math.PI) / model.circuit.source.angularFrequencyProperty.value;
+        for (let i = 0; i <= 60; i++) {
+          const time = (period * i) / 60;
+          expect(traceValueAt(model, time)).toBeCloseTo(model.instantaneousPowerAt(time), 9);
+        }
+      }
+    });
+
+    it("reads 2Θ at the playhead, where the signals read Θ", () => {
+      // The view passes `2 * drivePhase` to the power scope and plain
+      // `drivePhase` to the signal scope above it; at the playhead the trace is
+      // offset + S·cos(reference + phase). Doubling is right only because p(t)
+      // runs at twice the drive frequency — the whole point of the screen.
+      const model = new PowerModel();
+      model.circuit.source.frequencyProperty.value = 0.7;
+      model.step(3.5);
+
+      const drivePhase = model.circuit.source.drivePhaseProperty.value;
+      expect(drivePhase).toBeGreaterThan(0);
+
+      const voltage = model.circuit.voltagePhasorProperty.value.instantaneousAtDrivePhase(drivePhase);
+      const current = model.circuit.currentPhasorProperty.value.instantaneousAtDrivePhase(drivePhase);
+      const atPlayhead =
+        model.realPowerProperty.value +
+        model.apparentPowerProperty.value *
+          Math.cos(
+            2 * drivePhase +
+              model.circuit.voltagePhasorProperty.value.phase +
+              model.circuit.currentPhasorProperty.value.phase,
+          );
+
+      expect(atPlayhead).toBeCloseTo(voltage * current, 9);
+    });
+
+    it("matches with a purely reactive load, where the average is zero", () => {
+      // The case that separates 2ω from ω: here p(t) is symmetric about zero and
+      // the offset the view passes is P = 0, so the whole trace is the 2ω term.
+      const model = new PowerModel();
+      model.circuit.resistanceProperty.value = 1;
+      model.circuit.inductanceProperty.value = 10;
+      model.circuit.source.frequencyProperty.value = 5;
+
+      const period = (2 * Math.PI) / model.circuit.source.angularFrequencyProperty.value;
+      for (let i = 0; i <= 60; i++) {
+        const time = (period * i) / 60;
+        expect(traceValueAt(model, time)).toBeCloseTo(model.instantaneousPowerAt(time), 9);
+      }
+    });
+  });
+
   describe("power triangle", () => {
     it("P and Q are the legs and S closes them", () => {
       const model = new PowerModel();

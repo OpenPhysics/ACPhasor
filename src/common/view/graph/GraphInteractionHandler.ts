@@ -12,7 +12,14 @@
 import type { BooleanProperty } from "scenerystack/axon";
 import type { ChartRectangle, ChartTransform, TickLabelSet } from "scenerystack/bamboo";
 import { Range, Vector2 } from "scenerystack/dot";
-import { DragListener, KeyboardDragListener, type Node, type Pointer, Rectangle } from "scenerystack/scenery";
+import {
+  DragListener,
+  KeyboardDragListener,
+  type Node,
+  type Pointer,
+  Rectangle,
+  type TInputListener,
+} from "scenerystack/scenery";
 import ACPhasorColors from "../../../ACPhasorColors.js";
 import ACPhasorNamespace from "../../../ACPhasorNamespace.js";
 import type GraphDataManager from "./GraphDataManager.js";
@@ -76,6 +83,12 @@ export default class GraphInteractionHandler {
   private graphWidth: number;
   private graphHeight: number;
 
+  /**
+   * Every input listener this handler attached, with the node it went on. The
+   * nodes belong to the graph, which a screen swap discards — see {@link dispose}.
+   */
+  private readonly attachedListeners: { node: Node; listener: TInputListener }[] = [];
+
   public constructor(
     chartConfig: ChartConfig,
     uiState: GraphUIState,
@@ -110,11 +123,38 @@ export default class GraphInteractionHandler {
   }
 
   /**
+   * Attach an input listener and remember it, so {@link dispose} can take it
+   * back off again. Everything this class adds goes through here.
+   */
+  private attach(node: Node, listener: TInputListener): void {
+    node.addInputListener(listener);
+    this.attachedListeners.push({ node: node, listener: listener });
+  }
+
+  /**
+   * Detach every listener this handler added and dispose the ones that own
+   * state of their own (the drag listeners). Without this a discarded graph
+   * stays wired to the pointer.
+   */
+  public dispose(): void {
+    for (const { node, listener } of this.attachedListeners) {
+      node.removeInputListener(listener);
+      (listener as { dispose?: () => void }).dispose?.();
+    }
+    this.attachedListeners.length = 0;
+
+    for (const handle of this.resizeHandles) {
+      handle.dispose();
+    }
+    this.resizeHandles.length = 0;
+  }
+
+  /**
    * Setup non-intrusive zoom controls using mouse wheel and keyboard
    */
   private setupZoomControls(): void {
     // Mouse wheel zoom on the chart area
-    this.chartRectangle.addInputListener({
+    this.attach(this.chartRectangle, {
       wheel: (event) => {
         event.handle();
         const delta = event.domEvent?.deltaY;
@@ -135,7 +175,7 @@ export default class GraphInteractionHandler {
     });
 
     // Double-click to reset to auto-scale
-    this.chartRectangle.addInputListener({
+    this.attach(this.chartRectangle, {
       down: (event) => {
         if (event.domEvent && event.domEvent.detail === 2) {
           // Double click detected
@@ -203,13 +243,14 @@ export default class GraphInteractionHandler {
       },
     });
 
-    this.chartRectangle.addInputListener(dragListener);
+    this.attach(this.chartRectangle, dragListener);
     this.chartRectangle.cursor = "move";
 
     // Keyboard pan: arrow keys translate the chart model ranges.
     this.chartRectangle.focusable = true;
     this.chartRectangle.tagName = "div";
-    this.chartRectangle.addInputListener(
+    this.attach(
+      this.chartRectangle,
       new KeyboardDragListener({
         dragSpeed: 200,
         shiftDragSpeed: 60,
@@ -245,7 +286,7 @@ export default class GraphInteractionHandler {
     let initialXRange: Range | null = null;
     let initialYRange: Range | null = null;
 
-    this.chartRectangle.addInputListener({
+    this.attach(this.chartRectangle, {
       down: (event) => {
         // Only track touch events (not mouse)
         if (event.pointer.type === "touch") {
@@ -351,7 +392,7 @@ export default class GraphInteractionHandler {
     let initialYRange: Range | null = null;
     let singleTouchStartY: number | null = null;
 
-    this.yAxisInteractionRegion.addInputListener({
+    this.attach(this.yAxisInteractionRegion, {
       down: (event) => {
         if (event.pointer.type === "touch") {
           const globalPoint = event.pointer.point;
@@ -489,14 +530,14 @@ export default class GraphInteractionHandler {
       },
     });
 
-    this.yAxisInteractionRegion.addInputListener(mouseDragListener);
+    this.attach(this.yAxisInteractionRegion, mouseDragListener);
 
     // Make Y-axis interaction region pickable so it can receive input
     this.yAxisInteractionRegion.pickable = true;
     this.yAxisInteractionRegion.cursor = "ns-resize";
 
     // Add mouse wheel support for Y-axis zooming (zoom vertically only)
-    this.yAxisInteractionRegion.addInputListener({
+    this.attach(this.yAxisInteractionRegion, {
       wheel: (event) => {
         event.handle();
         const delta = event.domEvent?.deltaY;
@@ -541,7 +582,7 @@ export default class GraphInteractionHandler {
     let initialXRange: Range | null = null;
     let singleTouchStartX: number | null = null;
 
-    this.xAxisInteractionRegion.addInputListener({
+    this.attach(this.xAxisInteractionRegion, {
       down: (event) => {
         if (event.pointer.type === "touch") {
           const globalPoint = event.pointer.point;
@@ -679,14 +720,14 @@ export default class GraphInteractionHandler {
       },
     });
 
-    this.xAxisInteractionRegion.addInputListener(mouseDragListener);
+    this.attach(this.xAxisInteractionRegion, mouseDragListener);
 
     // Make X-axis interaction region pickable so it can receive input
     this.xAxisInteractionRegion.pickable = true;
     this.xAxisInteractionRegion.cursor = "ew-resize";
 
     // Add mouse wheel support for X-axis zooming (zoom horizontally only)
-    this.xAxisInteractionRegion.addInputListener({
+    this.attach(this.xAxisInteractionRegion, {
       wheel: (event) => {
         event.handle();
         const delta = event.domEvent?.deltaY;
@@ -750,7 +791,7 @@ export default class GraphInteractionHandler {
       },
     });
 
-    this.headerBar.addInputListener(dragListener);
+    this.attach(this.headerBar, dragListener);
   }
 
   /**
@@ -863,7 +904,7 @@ export default class GraphInteractionHandler {
       },
     });
 
-    handle.addInputListener(dragListener);
+    this.attach(handle, dragListener);
   }
 
   /**

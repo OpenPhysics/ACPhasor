@@ -36,6 +36,13 @@ export default class GraphControlsPanel {
   private readonly yPropertyProperty: Property<PlottableProperty>;
   private readonly graphWidth: number;
 
+  /**
+   * The combo boxes and derived Properties this panel builds. Both derived
+   * Properties listen to something that outlives the graph — a localized string
+   * and a global color — so they are released in {@link dispose}.
+   */
+  private readonly disposables: { dispose(): void }[] = [];
+
   public constructor(
     availableProperties: PlottableProperty[],
     xPropertyProperty: Property<PlottableProperty>,
@@ -117,10 +124,12 @@ export default class GraphControlsPanel {
     });
 
     const vsStringProperty = StringManager.getInstance().getLabels().vsStringProperty;
-    const vsText = new Text(new DerivedProperty([vsStringProperty], (vs: string) => ` ${vs} `), {
+    const paddedVsProperty = new DerivedProperty([vsStringProperty], (vs: string) => ` ${vs} `);
+    const vsText = new Text(paddedVsProperty, {
       font: TITLE_FONT,
       fill: ACPhasorColors.textColorProperty,
     });
+    this.disposables.push(xComboBox, yComboBox, vsText, paddedVsProperty);
 
     const rightParen = new Text(")", {
       font: TITLE_FONT,
@@ -157,8 +166,19 @@ export default class GraphControlsPanel {
         cursor: "grab",
       },
     );
+    // The fill darkens a global color Property, so it has to be let go of
+    // explicitly — otherwise every graph ever built stays on its listener list.
+    this.disposables.push(headerFillProperty);
 
     return headerBar;
+  }
+
+  /** Release the combo boxes and the derived Properties built above. */
+  public dispose(): void {
+    for (const disposable of this.disposables) {
+      disposable.dispose();
+    }
+    this.disposables.length = 0;
   }
 
   /**

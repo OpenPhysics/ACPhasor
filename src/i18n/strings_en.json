@@ -94,7 +94,8 @@
         "capacitance": "Capacitance",
         "sourceVoltage": "Source voltage amplitude",
         "frequency": "Source frequency",
-        "tipToTail": "Draw the voltage phasors tip to tail"
+        "tipToTail": "Draw the voltage phasors tip to tail",
+        "graph": "Show or hide the configurable graph"
       }
     },
     "resonance": {

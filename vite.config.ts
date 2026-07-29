@@ -154,8 +154,8 @@ export default defineConfig(({ mode }) => {
             manifest: {
               name: "AC Phasor",
               // biome-ignore lint/style/useNamingConvention: Web App Manifest spec requires snake_case keys
-              short_name: "SimTemplate",
-              description: "A single-screen SceneryStack simulation template",
+              short_name: "ACPhasor",
+              description: "AC phasor simulation exploring resistors, inductors, and capacitors across four screens",
               // biome-ignore lint/style/useNamingConvention: Web App Manifest spec requires snake_case keys
               theme_color: "#1a1a2e",
               // biome-ignore lint/style/useNamingConvention: Web App Manifest spec requires snake_case keys

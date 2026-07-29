@@ -85,6 +85,9 @@ export class IntroScreenView extends ScreenView {
   private readonly scope: WaveformNode;
   private readonly circuit: CircuitDiagramNode;
 
+  /** Everything linking a model Property, released in {@link dispose}. */
+  private readonly disposables: { dispose(): void }[] = [];
+
   public constructor(model: IntroModel, options?: ScreenViewOptions) {
     super({
       screenSummaryContent: new IntroScreenSummaryContent(model),
@@ -120,32 +123,34 @@ export class IntroScreenView extends ScreenView {
       referenceCircleRadius: DIAL_VOLTAGE_ARROW_LENGTH,
     });
     // The wedge goes on before the arrows so the arrows read over it.
-    diagram.addChild(
-      new PhaseArcNode(
-        new DerivedProperty([this.displayVoltageProperty], (voltage) => voltage.phase),
-        new DerivedProperty([this.displayCurrentProperty], (current) => current.phase),
-        diagram.modelViewTransform,
-        {
-          modelRadius: DIAL_PHASE_ARC_RADIUS,
-          stroke: currentColorProperty,
-        },
-      ),
-    );
+    const voltageAngleProperty = new DerivedProperty([this.displayVoltageProperty], (voltage) => voltage.phase);
+    const currentAngleProperty = new DerivedProperty([this.displayCurrentProperty], (current) => current.phase);
+    const phaseArc = new PhaseArcNode(voltageAngleProperty, currentAngleProperty, diagram.modelViewTransform, {
+      modelRadius: DIAL_PHASE_ARC_RADIUS,
+      stroke: currentColorProperty,
+    });
+    diagram.addChild(phaseArc);
     // The dashed drop from each tip to the real axis lands at that phasor's
     // instantaneous value — the same number the scope is plotting below.
-    diagram.addChild(
-      new PhasorNode(this.displayVoltageProperty, diagram.modelViewTransform, {
-        fill: ACPhasorColors.textColorProperty,
-        labelString: "V",
-        showProjection: "real",
-      }),
-    );
-    diagram.addChild(
-      new PhasorNode(this.displayCurrentProperty, diagram.modelViewTransform, {
-        fill: currentColorProperty,
-        labelString: "I",
-        showProjection: "real",
-      }),
+    const voltagePhasorNode = new PhasorNode(this.displayVoltageProperty, diagram.modelViewTransform, {
+      fill: ACPhasorColors.textColorProperty,
+      labelString: "V",
+      showProjection: "real",
+    });
+    diagram.addChild(voltagePhasorNode);
+    const currentPhasorNode = new PhasorNode(this.displayCurrentProperty, diagram.modelViewTransform, {
+      fill: currentColorProperty,
+      labelString: "I",
+      showProjection: "real",
+    });
+    diagram.addChild(currentPhasorNode);
+    this.disposables.push(
+      voltagePhasorNode,
+      currentPhasorNode,
+      phaseArc,
+      voltageAngleProperty,
+      currentAngleProperty,
+      currentColorProperty,
     );
     diagram.top = SCREEN_VIEW_MARGIN + 10;
     diagram.left = SCREEN_VIEW_MARGIN + 20;
@@ -255,7 +260,9 @@ export class IntroScreenView extends ScreenView {
       { decimalPlaces: 1, accessibleName: a11y.controls.capacitanceStringProperty },
     );
     const bindVisibility = (type: CircuitElementType, control: Node) => {
-      control.visibleProperty = new DerivedProperty([model.elementTypeProperty], (selected) => selected === type);
+      const visibleProperty = new DerivedProperty([model.elementTypeProperty], (selected) => selected === type);
+      control.visibleProperty = visibleProperty;
+      this.disposables.push(visibleProperty);
     };
     bindVisibility("resistor", resistanceControl);
     bindVisibility("inductor", inductanceControl);
@@ -302,6 +309,7 @@ export class IntroScreenView extends ScreenView {
       [model.phaseDifferenceProperty],
       (phaseDifference) => (phaseDifference * 180) / Math.PI,
     );
+    this.disposables.push(impedanceMagnitude, phaseDegrees, this.circuit);
     const readoutPanel = new SimPanel(
       new VBox({
         align: "left",
@@ -376,21 +384,22 @@ export class IntroScreenView extends ScreenView {
     // Hold a fixed number of cycles on screen. Across the frequency range one
     // period runs from 0.2 s to 50 s, so a window fixed in seconds would show a
     // picket fence at one end and a flat line at the other.
-    model.source.frequencyProperty.link((frequency) => {
-      this.scope.setTimeWindow(SCOPE_PERIODS_SHOWN / Math.max(frequency, 1e-6));
-    });
-
-    // Keep the static scope traces in sync with the model (the playhead animates
-    // in step()).
-    Multilink.multilink(
-      [model.voltagePhasorProperty, model.source.angularFrequencyProperty],
-      (voltage, angularFrequency) =>
-        this.scope.setTrace(VOLTAGE_TRACE, voltage.amplitude, angularFrequency, voltage.phase),
-    );
-    Multilink.multilink(
-      [model.currentPhasorProperty, model.source.angularFrequencyProperty],
-      (current, angularFrequency) =>
-        this.scope.setTrace(CURRENT_TRACE, current.amplitude, angularFrequency, current.phase),
+    this.disposables.push(
+      Multilink.multilink([model.source.frequencyProperty], (frequency) => {
+        this.scope.setTimeWindow(SCOPE_PERIODS_SHOWN / Math.max(frequency, 1e-6));
+      }),
+      // Keep the static scope traces in sync with the model (the playhead
+      // animates in step()).
+      Multilink.multilink(
+        [model.voltagePhasorProperty, model.source.angularFrequencyProperty],
+        (voltage, angularFrequency) =>
+          this.scope.setTrace(VOLTAGE_TRACE, voltage.amplitude, angularFrequency, voltage.phase),
+      ),
+      Multilink.multilink(
+        [model.currentPhasorProperty, model.source.angularFrequencyProperty],
+        (current, angularFrequency) =>
+          this.scope.setTrace(CURRENT_TRACE, current.amplitude, angularFrequency, current.phase),
+      ),
     );
 
     this.addChild(
@@ -431,5 +440,12 @@ export class IntroScreenView extends ScreenView {
 
   public override step(_dt: number): void {
     this.updatePhasorClock();
+  }
+
+  public override dispose(): void {
+    for (const disposable of this.disposables) {
+      disposable.dispose();
+    }
+    super.dispose();
   }
 }

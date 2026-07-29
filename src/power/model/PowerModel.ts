@@ -138,4 +138,20 @@ export class PowerModel implements TModel {
     this.circuit.reset();
     this.timer.reset();
   }
+
+  /**
+   * Release the listener graph, leaves first: the power Properties listen to the
+   * circuit's, so they have to let go before the circuit does.
+   */
+  public dispose(): void {
+    this.apparentPowerPhasorProperty.dispose();
+    this.reactivePowerPhasorProperty.dispose();
+    this.realPowerPhasorProperty.dispose();
+    this.powerFactorProperty.dispose();
+    this.reactivePowerProperty.dispose();
+    this.realPowerProperty.dispose();
+    this.apparentPowerProperty.dispose();
+    this.timer.dispose();
+    this.circuit.dispose();
+  }
 }

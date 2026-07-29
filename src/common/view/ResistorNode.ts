@@ -103,6 +103,8 @@ export class ResistorNode extends CircuitElementNode {
   private readonly valueBands: Rectangle[] = [];
   private readonly heatGlow: Rectangle;
   private readonly hotGlow: Rectangle;
+  /** Releases the caller's resistance Property; undefined when none was given. */
+  private unlinkResistance: (() => void) | undefined;
 
   public constructor(providedOptions?: SelfOptions) {
     const options = {
@@ -226,12 +228,15 @@ export class ResistorNode extends CircuitElementNode {
     );
 
     if (options.resistanceProperty) {
-      options.resistanceProperty.link((resistance) => {
+      const resistanceProperty = options.resistanceProperty;
+      const bandListener = (resistance: number): void => {
         const colors = bandColorsFor(resistance);
         this.valueBands.forEach((band, index) => {
           band.fill = colors[index] ?? DIGIT_BAND_COLORS[0];
         });
-      });
+      };
+      resistanceProperty.link(bandListener);
+      this.unlinkResistance = () => resistanceProperty.unlink(bandListener);
     }
   }
 
@@ -252,5 +257,12 @@ export class ResistorNode extends CircuitElementNode {
     // the way something actually starts to glow.
     const hot = Math.max(0, (clamped - 0.35) / 0.65);
     this.hotGlow.opacity = 0.7 * hot * hot;
+  }
+
+  /** Let go of the resistance Property, which belongs to a longer-lived model. */
+  public override dispose(): void {
+    this.unlinkResistance?.();
+    this.unlinkResistance = undefined;
+    super.dispose();
   }
 }

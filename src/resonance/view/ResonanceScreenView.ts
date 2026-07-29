@@ -85,7 +85,6 @@ export class ResonanceScreenView extends ScreenView {
     this.model = model;
     const labels = StringManager.getInstance().getLabels();
     const a11y = StringManager.getInstance().getResonanceA11yStrings();
-    const circuit = model.circuit;
 
     this.addChild(
       new Rectangle(0, 0, this.layoutBounds.width, this.layoutBounds.height, {
@@ -150,22 +149,22 @@ export class ResonanceScreenView extends ScreenView {
     // The triangle is drawn head to tail, so its furthest point is the tip of Z
     // itself — normalize against that and the figure fills the dial at any R.
     const chainScaleProperty = new DerivedProperty(
-      [circuit.impedancePhasorProperty],
+      [model.impedancePhasorProperty],
       (impedance) => NORMALIZATION_TARGET / Math.max(impedance.amplitude, 1e-6),
     );
 
     const scaledResistance = new DerivedProperty(
-      [circuit.resistancePhasorProperty, chainScaleProperty],
+      [model.resistancePhasorProperty, chainScaleProperty],
       (phasor, scale) => phasor.scaled(scale),
       { valueComparisonStrategy: "equalsFunction" },
     );
     const scaledReactance = new DerivedProperty(
-      [circuit.reactancePhasorProperty, chainScaleProperty],
+      [model.reactancePhasorProperty, chainScaleProperty],
       (phasor, scale) => phasor.scaled(scale),
       { valueComparisonStrategy: "equalsFunction" },
     );
     const scaledImpedance = new DerivedProperty(
-      [circuit.impedancePhasorProperty, chainScaleProperty],
+      [model.impedancePhasorProperty, chainScaleProperty],
       (phasor, scale) => phasor.scaled(scale),
       { valueComparisonStrategy: "equalsFunction" },
     );
@@ -197,14 +196,14 @@ export class ResonanceScreenView extends ScreenView {
     });
 
     // ── Readouts ────────────────────────────────────────────────────────────
-    const phaseDegrees = new DerivedProperty([circuit.phaseProperty], (phase) => (phase * 180) / Math.PI);
-    const impedanceMagnitude = new DerivedProperty([circuit.impedanceProperty], (impedance) => impedance.magnitude);
+    const phaseDegrees = new DerivedProperty([model.phaseProperty], (phase) => (phase * 180) / Math.PI);
+    const impedanceMagnitude = new DerivedProperty([model.impedanceProperty], (impedance) => impedance.magnitude);
     this.disposables.push(phaseDegrees, impedanceMagnitude);
 
     const resonanceBadge = new Text(labels.atResonanceStringProperty, {
       font: "bold 14px sans-serif",
       fill: ACPhasorColors.resonanceHighlightColorProperty,
-      visibleProperty: circuit.isAtResonanceProperty,
+      visibleProperty: model.isAtResonanceProperty,
     });
 
     const readoutPanel = new SimPanel(
@@ -214,21 +213,21 @@ export class ResonanceScreenView extends ScreenView {
         children: [
           new SimReadout(
             labels.resonantFrequencyStringProperty,
-            circuit.resonantFrequencyProperty,
+            model.resonantFrequencyProperty,
             labels.hertzPatternStringProperty,
             new Range(0, 100),
             2,
           ),
           new SimReadout(
             labels.qualityFactorStringProperty,
-            circuit.qualityFactorProperty,
+            model.qualityFactorProperty,
             labels.plainPatternStringProperty,
             new Range(0, 100),
             2,
           ),
           new SimReadout(
             labels.bandwidthStringProperty,
-            circuit.bandwidthProperty,
+            model.bandwidthProperty,
             labels.hertzPatternStringProperty,
             new Range(0, 1000),
             2,
@@ -242,7 +241,7 @@ export class ResonanceScreenView extends ScreenView {
           ),
           new SimReadout(
             labels.currentAmplitudeStringProperty,
-            circuit.currentAmplitudeProperty,
+            model.currentAmplitudeProperty,
             labels.amperesPatternStringProperty,
             new Range(0, 100),
             3,
@@ -271,28 +270,28 @@ export class ResonanceScreenView extends ScreenView {
     // ── Control panel ───────────────────────────────────────────────────────
     const resistanceControl = new SimNumberControl(
       labels.resistanceStringProperty,
-      circuit.resistanceProperty,
+      model.resistanceProperty,
       RESISTANCE_RANGE_OHMS,
       labels.ohmsPatternStringProperty,
       { decimalPlaces: 0, accessibleName: a11y.controls.resistanceStringProperty },
     );
     const inductanceControl = new SimNumberControl(
       labels.inductanceStringProperty,
-      circuit.inductanceProperty,
+      model.inductanceProperty,
       INDUCTANCE_RANGE_H,
       labels.henriesPatternStringProperty,
       { decimalPlaces: 1, accessibleName: a11y.controls.inductanceStringProperty },
     );
     const capacitanceControl = new SimNumberControl(
       labels.capacitanceStringProperty,
-      circuit.capacitanceProperty,
+      model.capacitanceProperty,
       CAPACITANCE_RANGE_F,
       labels.faradsPatternStringProperty,
       { decimalPlaces: 1, accessibleName: a11y.controls.capacitanceStringProperty },
     );
     const sourceVoltageControl = new SimNumberControl(
       labels.sourceVoltageStringProperty,
-      circuit.source.amplitudeProperty,
+      model.source.amplitudeProperty,
       AC_AMPLITUDE_RANGE_V,
       labels.voltsPatternStringProperty,
       { decimalPlaces: 1, accessibleName: a11y.controls.sourceVoltageStringProperty },
@@ -302,7 +301,7 @@ export class ResonanceScreenView extends ScreenView {
     // axis is logarithmic too.
     const frequencyControl = new SimNumberControl(
       labels.frequencyStringProperty,
-      circuit.source.frequencyProperty,
+      model.source.frequencyProperty,
       AC_FREQUENCY_RANGE_HZ,
       labels.hertzPatternStringProperty,
       {
@@ -366,20 +365,11 @@ export class ResonanceScreenView extends ScreenView {
     // curve itself is resampled only when the circuit actually changes.
     this.disposables.push(
       Multilink.multilink(
-        [
-          circuit.resistanceProperty,
-          circuit.inductanceProperty,
-          circuit.capacitanceProperty,
-          circuit.source.amplitudeProperty,
-        ],
+        [model.resistanceProperty, model.inductanceProperty, model.capacitanceProperty, model.source.amplitudeProperty],
         () => this.updateCurves(),
       ),
       Multilink.multilink(
-        [
-          circuit.resonantFrequencyProperty,
-          circuit.lowerHalfPowerFrequencyProperty,
-          circuit.upperHalfPowerFrequencyProperty,
-        ],
+        [model.resonantFrequencyProperty, model.lowerHalfPowerFrequencyProperty, model.upperHalfPowerFrequencyProperty],
         (resonantFrequency, lower, upper) => {
           this.currentCurve.setResonantFrequency(resonantFrequency);
           this.phaseCurve.setResonantFrequency(resonantFrequency);
@@ -408,7 +398,12 @@ export class ResonanceScreenView extends ScreenView {
     this.updateMarkers();
   }
 
-  /** Resample both curves for the circuit's present R, L, C and source amplitude. */
+  /**
+   * Resample both curves for the circuit's present R, L, C and source amplitude.
+   * These go through `model.circuit` rather than the re-exported Properties
+   * because they are methods: they answer for frequencies the circuit is *not*
+   * being driven at, which is exactly what a response curve is made of.
+   */
   private updateCurves(): void {
     const circuit = this.model.circuit;
     this.currentCurve.setCurve((frequency) => circuit.currentAmplitudeAt(frequency));
@@ -417,7 +412,7 @@ export class ResonanceScreenView extends ScreenView {
 
   /** Slide the operating point along both curves to the present drive frequency. */
   private updateMarkers(): void {
-    const frequency = this.model.circuit.source.frequencyProperty.value;
+    const frequency = this.model.source.frequencyProperty.value;
     this.currentCurve.setMarkerFrequency(frequency);
     this.phaseCurve.setMarkerFrequency(frequency);
   }

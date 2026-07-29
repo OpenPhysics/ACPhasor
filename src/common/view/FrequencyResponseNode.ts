@@ -151,6 +151,9 @@ export class FrequencyResponseNode extends Node {
       autoScale: false,
       minimumFullScale: 0,
       showFrequencyAxisLabels: true,
+      // Math notation by default, as on the scope's time axis; the Resonance
+      // screen overrides it with a localized StringProperty, which is what this
+      // option is for.
       frequencyAxisLabel: "f (Hz)" as string | TReadOnlyProperty<string>,
       axisColor: ACPhasorColors.textColorProperty as TColor,
       gridColor: ACPhasorColors.panelBorderColorProperty as TColor,

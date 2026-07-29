@@ -32,7 +32,11 @@ export class Phasor {
   public readonly complex: Complex;
 
   /**
-   * @param amplitude - Peak amplitude A (the phasor's magnitude). May be any real number.
+   * @param amplitude - Peak amplitude A. May be any real number: a negative one
+   *   is normalized on the way in, because the complex amplitude is stored in
+   *   rectangular form and read back through |z| and arg z. `new Phasor(-A, φ)`
+   *   is therefore exactly `new Phasor(A, φ + π)` — the sign moves into the
+   *   phase, which is what the sign of a cosine means anyway.
    * @param phase - Phase angle φ in radians.
    */
   public constructor(amplitude: number, phase: number) {
@@ -111,7 +115,11 @@ export class Phasor {
     return Phasor.fromComplex(this.complex.dividedBy(z));
   }
 
-  /** Scale the amplitude by a real factor, keeping the phase (sign flips at negative scale). */
+  /**
+   * Scale the amplitude by a real factor, keeping the phase. A negative factor
+   * keeps the amplitude non-negative and turns the phase by π instead — see the
+   * constructor.
+   */
   public scaled(scale: number): Phasor {
     return new Phasor(this.amplitude * scale, this.phase);
   }

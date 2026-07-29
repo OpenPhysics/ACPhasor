@@ -19,8 +19,8 @@ export class ResonanceScreenSummaryContent extends ScreenSummaryContent {
     // sentence and the badge can never disagree about where the peak is.
     const currentDetails = new DerivedProperty(
       [
-        model.circuit.phaseProperty,
-        model.circuit.isAtResonanceProperty,
+        model.phaseProperty,
+        model.isAtResonanceProperty,
         a11y.currentDetails.belowStringProperty,
         a11y.currentDetails.aboveStringProperty,
         a11y.currentDetails.atStringProperty,

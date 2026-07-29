@@ -161,6 +161,7 @@ export class SeriesRlcScreenView extends ScreenView {
     });
     this.circuit.left = SCREEN_VIEW_MARGIN + 10;
     this.circuit.top = SCREEN_VIEW_MARGIN;
+    this.disposables.push(this.circuit);
 
     // ── Voltage triangle ────────────────────────────────────────────────────
     const voltageDiagram = new PhasorDiagramNode({
@@ -469,6 +470,7 @@ export class SeriesRlcScreenView extends ScreenView {
     );
     this.graph.left = SCREEN_VIEW_MARGIN + 40;
     this.graph.top = tipToTailCheckbox.bottom + 26;
+    this.disposables.push(this.graph);
 
     const graphToggleButton = new RectangularPushButton({
       ...FLAT_RECTANGULAR_BUTTON_OPTIONS,
@@ -482,6 +484,7 @@ export class SeriesRlcScreenView extends ScreenView {
       },
       left: SCREEN_VIEW_MARGIN + 40,
       top: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN - 30,
+      accessibleName: a11y.controls.graphStringProperty,
     });
 
     this.addChild(this.circuit);
@@ -509,12 +512,11 @@ export class SeriesRlcScreenView extends ScreenView {
       ),
     );
 
-    // Hold a fixed number of cycles on screen across the frequency range.
-    model.source.frequencyProperty.link((frequency) => {
-      this.scope.setTimeWindow(SCOPE_PERIODS_SHOWN / Math.max(frequency, 1e-6));
-    });
-
     this.disposables.push(
+      // Hold a fixed number of cycles on screen across the frequency range.
+      Multilink.multilink([model.source.frequencyProperty], (frequency) => {
+        this.scope.setTimeWindow(SCOPE_PERIODS_SHOWN / Math.max(frequency, 1e-6));
+      }),
       Multilink.multilink(
         [model.voltagePhasorProperty, model.source.angularFrequencyProperty],
         (voltage, angularFrequency) =>

@@ -94,7 +94,8 @@
         "capacitance": "Capacité",
         "sourceVoltage": "Amplitude de la tension de source",
         "frequency": "Fréquence de la source",
-        "tipToTail": "Tracer les phaseurs de tension bout à bout"
+        "tipToTail": "Tracer les phaseurs de tension bout à bout",
+        "graph": "Afficher ou masquer le graphique configurable"
       }
     },
     "resonance": {

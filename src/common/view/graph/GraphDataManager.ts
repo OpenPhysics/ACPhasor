@@ -11,6 +11,13 @@ import { Circle, type Node } from "scenerystack/scenery";
 import ACPhasorColors from "../../../ACPhasorColors.js";
 import ACPhasorNamespace from "../../../ACPhasorNamespace.js";
 
+// Trail dot appearance: the oldest dot in the trail is small and faint, the
+// newest large and nearly opaque, so the trail reads as a direction of travel.
+const TRAIL_MIN_RADIUS = 3;
+const TRAIL_MAX_RADIUS = 5;
+const TRAIL_MIN_OPACITY = 0.2;
+const TRAIL_MAX_OPACITY = 0.8;
+
 /**
  * Configuration for grid lines, tick marks, and tick labels
  */
@@ -30,6 +37,12 @@ export default class GraphDataManager {
   private readonly linePlot: LinePlot;
   private readonly trailNode: Node;
   private readonly trailLength: number = 5;
+  /**
+   * The trail dots, built once and thereafter only moved, resized and hidden.
+   * {@link updateTrail} runs every frame the graph is visible, so it must not
+   * allocate — same reason {@link CapacitorNode} pre-builds its charge symbols.
+   */
+  private readonly trailDots: Circle[] = [];
   private isManuallyZoomed: boolean = false;
 
   // Grid and tick components
@@ -57,6 +70,15 @@ export default class GraphDataManager {
     this.yTickMarkSet = gridConfig.yTickMarkSet;
     this.xTickLabelSet = gridConfig.xTickLabelSet;
     this.yTickLabelSet = gridConfig.yTickLabelSet;
+
+    for (let i = 0; i < this.trailLength; i++) {
+      const dot = new Circle(TRAIL_MAX_RADIUS, {
+        fill: ACPhasorColors.plotColorProperty,
+        visible: false,
+      });
+      this.trailDots.push(dot);
+      this.trailNode.addChild(dot);
+    }
   }
 
   /**
@@ -137,8 +159,10 @@ export default class GraphDataManager {
     // Reset tick spacing
     this.updateTickSpacing(defaultRange, defaultRange);
 
-    // Clear trail
-    this.trailNode.removeAllChildren();
+    // Clear trail (the dots are pooled — hide them, do not discard them)
+    for (const dot of this.trailDots) {
+      dot.visible = false;
+    }
 
     // Reset zoom state
     this.isManuallyZoomed = false;
@@ -238,54 +262,39 @@ export default class GraphDataManager {
   }
 
   /**
-   * Update the trail visualization showing the most recent points
+   * Update the trail visualization showing the most recent points.
+   *
+   * Called once per frame while the graph is visible (and again on every zoom,
+   * pan and resize), so it reuses the pooled dots rather than rebuilding them:
+   * unused ones are simply hidden.
    */
   public updateTrail(): void {
-    // Clear existing trail circles
-    this.trailNode.removeAllChildren();
-
     // Get the last N points (up to trailLength)
     const numTrailPoints = Math.min(this.trailLength, this.dataPoints.length);
-    if (numTrailPoints === 0) {
-      return;
-    }
 
     // Start from the most recent points
     const startIndex = this.dataPoints.length - numTrailPoints;
 
-    for (let i = 0; i < numTrailPoints; i++) {
-      const point = this.dataPoints[startIndex + i];
+    this.trailDots.forEach((dot, i) => {
+      const point = i < numTrailPoints ? this.dataPoints[startIndex + i] : undefined;
       if (!point) {
-        continue;
+        dot.visible = false;
+        return;
       }
 
-      // Calculate the age of this point (0 = oldest in trail, numTrailPoints-1 = newest)
-      const age = i;
-      const fraction = age / (numTrailPoints - 1 || 1); // 0 to 1, where 1 is newest
+      // Age of this point within the trail: 0 is the oldest, 1 the newest.
+      const fraction = i / (numTrailPoints - 1 || 1);
 
       // Size and opacity increase with recency
       // Oldest point: small and transparent
       // Newest point: large and opaque
-      const minRadius = 3;
-      const maxRadius = 5;
-      const radius = minRadius + (maxRadius - minRadius) * fraction;
-
-      const minOpacity = 0.2;
-      const maxOpacity = 0.8;
-      const opacity = minOpacity + (maxOpacity - minOpacity) * fraction;
+      dot.radius = TRAIL_MIN_RADIUS + (TRAIL_MAX_RADIUS - TRAIL_MIN_RADIUS) * fraction;
+      dot.opacity = TRAIL_MIN_OPACITY + (TRAIL_MAX_OPACITY - TRAIL_MIN_OPACITY) * fraction;
 
       // Transform model coordinates to view coordinates
-      const viewPosition = this.chartTransform.modelToViewPosition(point);
-
-      // Create circle for this trail point
-      const circle = new Circle(radius, {
-        fill: ACPhasorColors.plotColorProperty,
-        opacity: opacity,
-        center: viewPosition,
-      });
-
-      this.trailNode.addChild(circle);
-    }
+      dot.center = this.chartTransform.modelToViewPosition(point);
+      dot.visible = true;
+    });
   }
 
   /**

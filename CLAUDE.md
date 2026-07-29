@@ -134,7 +134,28 @@ these rather than re-deriving the complex math:
   on a particular corner of the R–L–C space (the Resonance screen does, so that its
   curve has a visible peak in it from the start). Its `impedanceAt` / `currentAmplitudeAt`
   / `phaseAt` answer for frequencies the circuit is *not* being driven at, without
-  touching any Property — that is what a response curve samples.
+  touching any Property — that is what a response curve samples. A screen composing it
+  re-exports the Properties its view and tests use as its own fields (`SeriesRlcModel`
+  and `ResonanceModel` both do) so nothing reaches through `model.circuit.*`; the two
+  sampling methods above are the exception, because they are methods, not Properties.
+
+#### Disposal
+
+Anything that links a Property somebody else owns has to let go of it again, and the
+suite in `tests/memory-leak.test.ts` is what holds that line. Two rules:
+
+- **Every model has `dispose()`**, disposing its Properties in the reverse of
+  construction order (leaves first — a `DerivedProperty` is a listener on the ones it
+  was built from) and finishing with the composed `TimeModel` / `ACSourceModel` /
+  `RlcCircuitModel`. Never dispose an aliased Property twice: `voltagePhasorProperty` is
+  the source's, and `source.dispose()` owns it.
+- **Every view node that links a caller's Property has `dispose()`.** Collect them into
+  a `private readonly disposables: { dispose(): void }[]` as they are built and release
+  them in a `dispose()` override before `super.dispose()` — the pattern all four screen
+  views and `CircuitDiagramNode` use. Scenery's `Node.dispose()` does *not* dispose
+  children, so a node holding a sub-node that links a model Property must dispose it
+  explicitly. Assert the release as `someProperty.hasListeners() === false`, not as a
+  collected `WeakRef`.
 - **`PhasorDiagramNode`** builds the complex-plane transform; pass its
   `modelViewTransform` to each **`PhasorNode`**, **`PhasorChainNode`** or
   **`PhaseArcNode`** you `addChild`. **`WaveformNode`** is an imperative scope — call
@@ -315,13 +336,20 @@ state and add `accessibleName`s to every interactive node. Full convention and c
 
 ## Compliance carve-outs
 
-Baton's compliance check passes. One documented deviation:
+Baton's compliance check passes. Two documented deviations:
 
 - **IEC resistor band colors in `src/common/view/ResistorNode.ts`** (`BAND_COLORS`,
   `GOLD_BAND_COLOR`, `SILVER_BAND_COLOR`) are fixed standard codes, not themeable UI chrome.
   Putting them in `*Colors.ts` would imply projector remapping that would misrepresent the
   physical color code. The compliance script flags them as possible hardcoded colors; that
   warning is expected.
+
+- **Math-notation axis labels are not localized.** `PhasorDiagramNode`'s `"Re"` / `"Im"`,
+  `WaveformNode`'s `"t (s)"` and `FrequencyResponseNode`'s `"f (Hz)"` are quantity symbols
+  and SI units, the same notation as the `"V"` / `"I"` / `"V<sub>R</sub>"` phasor labels
+  beside them, and they are written identically in every locale the sim ships. All three are
+  *options* with these as defaults, so a screen that wants words instead passes a
+  `StringProperty` — the Resonance screen does exactly that for its frequency axis.
 
 ## Testing
 
@@ -339,7 +367,7 @@ Fleet-standard Vitest layout (keep when forking):
 | `tests/WaveformNode.test.ts` | Frozen footprint under rescale / retune, independent y-axes, offset + shaded traces |
 | `tests/FrequencyResponseNode.test.ts` | Frozen footprint under curve rescale, marker travel, band and non-finite samples |
 | `tests/SimNumberControl.test.ts` | The logarithmic-slider bridge, including both ends of the range |
-| `tests/memory-leak.test.ts` | WeakRef + `forceGC` dispose regression, plus listener-detach checks for view nodes |
+| `tests/memory-leak.test.ts` | WeakRef + `forceGC` dispose regression for every screen model, plus listener-detach checks for the view nodes that link model Properties |
 | `tests/fuzz/fuzz.spec.ts` | Optional Playwright fuzz smoke via joist `?fuzz` |
 | `playwright.config.ts` | Chromium project + Vite webServer for fuzz |
 

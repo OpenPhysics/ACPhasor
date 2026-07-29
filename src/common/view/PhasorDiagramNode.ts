@@ -57,6 +57,10 @@ export class PhasorDiagramNode extends Node {
       referenceCircleRadius: 0,
       axisColor: ACPhasorColors.textColorProperty as TColor,
       gridColor: ACPhasorColors.panelBorderColorProperty as TColor,
+      // Math notation, deliberately not localized: "Re" and "Im" are the
+      // international symbols for the two axes of the complex plane, the same
+      // way "V" and "I" label the phasors drawn on it. Pass null to drop them,
+      // or a different string for a screen that wants other axis names.
       realAxisLabel: "Re" as string | null,
       imaginaryAxisLabel: "Im" as string | null,
       ...providedOptions,

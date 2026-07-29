@@ -1,12 +1,20 @@
 # AC Phasor
 
 An AC phasor simulation built with [SceneryStack](https://scenerystack.org/),
-Vite 8, TypeScript 7, and Biome 2. Framework only for now: three screens covering
-single-component Intro, Series RLC, and Parallel RLC.
+Vite 8, TypeScript 7, and Biome 2. Four screens take one series R–L–C loop from a
+single element to the power it consumes.
 
 ## Features
 
-- Three screens: Intro (R / L / C), Series RLC, Parallel RLC
+- Four screens:
+  - **Intro** — one element at a time, with a rotating V/I phasor clock and a
+    dual-trace scope
+  - **Series RLC** — the rotating voltage triangle beside the static impedance
+    triangle
+  - **Resonance** — |I| and φ against a logarithmic frequency axis, with an
+    auto-sweep
+  - **Power** — p(t) = v·i shaded into delivered and returned energy, plus the
+    power triangle
 - English, Spanish, and French localization via `StringManager`
 - Default and projector color profiles
 - Progressive Web App (installable, offline-capable)

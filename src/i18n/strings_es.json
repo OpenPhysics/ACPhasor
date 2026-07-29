@@ -94,7 +94,8 @@
         "capacitance": "Capacitancia",
         "sourceVoltage": "Amplitud de la tensión de fuente",
         "frequency": "Frecuencia de la fuente",
-        "tipToTail": "Dibujar los fasores de tensión punta con cola"
+        "tipToTail": "Dibujar los fasores de tensión punta con cola",
+        "graph": "Mostrar u ocultar el gráfico configurable"
       }
     },
     "resonance": {

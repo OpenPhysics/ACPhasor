@@ -126,4 +126,22 @@ export class IntroModel implements TModel {
     this.inductanceProperty.reset();
     this.capacitanceProperty.reset();
   }
+
+  /**
+   * Release the listener graph, in the reverse of construction order — the
+   * derived Properties listen to the ones below them, and to the source's.
+   * {@link voltagePhasorProperty} is an alias for the source's and is disposed
+   * with it.
+   */
+  public dispose(): void {
+    this.phaseDifferenceProperty.dispose();
+    this.currentPhasorProperty.dispose();
+    this.impedanceProperty.dispose();
+    this.capacitanceProperty.dispose();
+    this.inductanceProperty.dispose();
+    this.resistanceProperty.dispose();
+    this.elementTypeProperty.dispose();
+    this.timer.dispose();
+    this.source.dispose();
+  }
 }

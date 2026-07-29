@@ -219,6 +219,13 @@ export class CircuitDiagramNode extends Node {
 
   private readonly capacitors: SizedCapacitor[] = [];
   private readonly liveUpdates: LiveElementUpdate[] = [];
+  /**
+   * Everything holding a listener on a caller's Property: the pictorial parts
+   * themselves, the per-type visibility bindings, and the plate-area link. The
+   * slot Properties belong to a model that outlives this node, so they are all
+   * released in {@link dispose}.
+   */
+  private readonly disposables: { dispose(): void }[] = [];
   private readonly elementScale: "absolute" | "peak";
   private readonly sourceNode: ACSourceNode;
   private readonly sourceVoltageProperty: TReadOnlyProperty<Phasor> | undefined;
@@ -671,7 +678,9 @@ export class CircuitDiagramNode extends Node {
       const element = this.createElement(type, slot);
       container.addChild(element);
       pendingVisibility.push(() => {
-        element.visibleProperty = new DerivedProperty([slot.typeProperty], (selected) => selected === type);
+        const visibleProperty = new DerivedProperty([slot.typeProperty], (selected) => selected === type);
+        element.visibleProperty = visibleProperty;
+        this.disposables.push(visibleProperty);
       });
     }
     return container;
@@ -679,6 +688,12 @@ export class CircuitDiagramNode extends Node {
 
   /** One pictorial component, bound to whichever model Properties the slot supplies. */
   private createElement(type: CircuitElementType, slot: SlotProperties): CircuitElementNode {
+    const element = this.createElementNode(type, slot);
+    this.disposables.push(element);
+    return element;
+  }
+
+  private createElementNode(type: CircuitElementType, slot: SlotProperties): CircuitElementNode {
     if (type === "resistor") {
       const resistorNode = new ResistorNode({
         terminalHalfWidth: ELEMENT_HALF_WIDTH,
@@ -744,7 +759,9 @@ export class CircuitDiagramNode extends Node {
 
     this.capacitors.push({ node: capacitorNode, updatePlateArea: updatePlateArea });
     if (capacitanceProperty && range) {
-      capacitanceProperty.link(() => updatePlateArea());
+      const plateAreaListener = (): void => updatePlateArea();
+      capacitanceProperty.link(plateAreaListener);
+      this.disposables.push({ dispose: () => capacitanceProperty.unlink(plateAreaListener) });
     }
 
     // Plate charge q(t) = C·v(t), as a fraction of full scale.
@@ -761,5 +778,18 @@ export class CircuitDiagramNode extends Node {
       });
     }
     return capacitorNode;
+  }
+
+  /**
+   * Let go of every slot Property. The model that owns them outlives the
+   * diagram — a screen swap builds a new one — so a listener left behind here
+   * would keep the whole picture alive and go on repainting it.
+   */
+  public override dispose(): void {
+    for (const disposable of this.disposables) {
+      disposable.dispose();
+    }
+    this.disposables.length = 0;
+    super.dispose();
   }
 }

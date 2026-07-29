@@ -128,13 +128,14 @@ export class RlcCircuitModel {
 
   /**
    * The two frequencies where the current has fallen to 1/√2 of its peak — the
-   * edges of the band {@link bandwidthProperty} measures.
+   * edges of the band whose width is {@link bandwidthProperty}.
    *
-   * They come from |ωL − 1/ωC| = R, which gives ω± = (±R + √(R² + 4L/C)) / 2L.
-   * The two are exactly Δf apart, but they are *not* symmetric about f₀: their
-   * midpoint sits at f₀·√(1 + 1/4Q²), a little above it. Drawing the band as
-   * f₀ ± Δf/2 would be a good approximation at high Q and visibly wrong at low
-   * Q, which is where this sim's L–C ranges actually put it.
+   * Solving |ωL − 1/ωC| = R, the condition that the reactance equals the
+   * resistance, gives ω± = (±R + √(R² + 4L/C)) / 2L. Those two are exactly Δω
+   * apart, but they do not straddle ω₀ evenly: their midpoint is
+   * ω₀·√(1 + 1/4Q²), which sits above ω₀ and only approaches it as Q grows. So
+   * drawing the band as f₀ ± Δf/2 is fine at high Q and visibly wrong at low Q
+   * — and low Q is where this sim's R, L and C ranges actually put it.
    */
   public readonly lowerHalfPowerFrequencyProperty: TReadOnlyProperty<number>;
   public readonly upperHalfPowerFrequencyProperty: TReadOnlyProperty<number>;
@@ -311,5 +312,38 @@ export class RlcCircuitModel {
     this.resistanceProperty.reset();
     this.inductanceProperty.reset();
     this.capacitanceProperty.reset();
+  }
+
+  /**
+   * Release the listener graph this circuit builds, so a discarded screen model
+   * stops being kept alive — and stops recomputing — through it.
+   *
+   * The order is the reverse of construction: every DerivedProperty here listens
+   * to the ones declared above it and to the source's, so the leaves have to let
+   * go before the things they depend on. {@link voltagePhasorProperty} is not
+   * disposed: it is an alias for the source's, which `source.dispose()` owns.
+   */
+  public dispose(): void {
+    this.impedancePhasorProperty.dispose();
+    this.reactancePhasorProperty.dispose();
+    this.resistancePhasorProperty.dispose();
+    this.isAtResonanceProperty.dispose();
+    this.upperHalfPowerFrequencyProperty.dispose();
+    this.lowerHalfPowerFrequencyProperty.dispose();
+    this.bandwidthProperty.dispose();
+    this.qualityFactorProperty.dispose();
+    this.resonantFrequencyProperty.dispose();
+    this.phaseProperty.dispose();
+    this.reactanceProperty.dispose();
+    this.capacitorVoltageProperty.dispose();
+    this.inductorVoltageProperty.dispose();
+    this.resistorVoltageProperty.dispose();
+    this.currentAmplitudeProperty.dispose();
+    this.currentPhasorProperty.dispose();
+    this.impedanceProperty.dispose();
+    this.capacitanceProperty.dispose();
+    this.inductanceProperty.dispose();
+    this.resistanceProperty.dispose();
+    this.source.dispose();
   }
 }

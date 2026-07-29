@@ -119,6 +119,9 @@ export class InductorNode extends CircuitElementNode {
   private readonly fluxInnerRadius: number;
   private readonly fluxLoopSpacing: number;
 
+  /** Releases the caller's inductance Property; undefined when none was given. */
+  private unlinkInductance: (() => void) | undefined;
+
   public constructor(providedOptions?: SelfOptions) {
     const options = {
       coilLength: 62,
@@ -246,11 +249,14 @@ export class InductorNode extends CircuitElementNode {
 
     if (options.inductanceProperty && options.inductanceRange) {
       const range = options.inductanceRange;
-      options.inductanceProperty.link((inductance) => {
+      const inductanceProperty = options.inductanceProperty;
+      const windingListener = (inductance: number): void => {
         const fraction = Math.max(0, Math.min(1, (inductance - range.min) / Math.max(range.getLength(), 1e-9)));
         // Turns scale with √L so the low end of the range still shows a change.
         this.setTurns(Math.round(options.minTurns + Math.sqrt(fraction) * (options.maxTurns - options.minTurns)));
-      });
+      };
+      inductanceProperty.link(windingListener);
+      this.unlinkInductance = () => inductanceProperty.unlink(windingListener);
     } else {
       this.setTurns(options.minTurns + 2);
     }
@@ -394,5 +400,12 @@ export class InductorNode extends CircuitElementNode {
         }),
       );
     }
+  }
+
+  /** Let go of the inductance Property, which belongs to a longer-lived model. */
+  public override dispose(): void {
+    this.unlinkInductance?.();
+    this.unlinkInductance = undefined;
+    super.dispose();
   }
 }

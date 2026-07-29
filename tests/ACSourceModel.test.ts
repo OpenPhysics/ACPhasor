@@ -62,6 +62,41 @@ describe("ACSourceModel", () => {
     source.dispose();
   });
 
+  /**
+   * The `phase` option is the one piece of the source's construction the sim's
+   * own screens never exercise — they all take the default φ = 0 and use the
+   * source as the reference every other phasor is measured against. It is here
+   * for a screen that needs a second source, so it is worth knowing it works.
+   */
+  describe("with a non-zero reference phase", () => {
+    it("carries φ into the voltage phasor and both instantaneous forms", () => {
+      const source = new ACSourceModel({ amplitude: 6, frequency: 1, phase: Math.PI / 3 });
+      expect(source.phase).toBeCloseTo(Math.PI / 3);
+      expect(source.voltagePhasorProperty.value.phase).toBeCloseTo(Math.PI / 3);
+
+      // v(0) = V₀·cos(φ), not V₀ — the source starts partway through its cycle.
+      expect(source.voltageAt(0)).toBeCloseTo(6 * Math.cos(Math.PI / 3));
+      expect(source.instantaneousVoltage()).toBeCloseTo(6 * Math.cos(Math.PI / 3));
+
+      source.advanceDrivePhase(0.25); // Θ = π/2 at 1 Hz
+      expect(source.instantaneousVoltage()).toBeCloseTo(6 * Math.cos(Math.PI / 2 + Math.PI / 3));
+      source.dispose();
+    });
+
+    it("keeps φ across an amplitude change and a reset", () => {
+      const source = new ACSourceModel({ amplitude: 6, phase: -Math.PI / 4 });
+      source.amplitudeProperty.value = 9;
+      expect(source.voltagePhasorProperty.value.phase).toBeCloseTo(-Math.PI / 4);
+
+      // φ is fixed at construction, so reset() has nothing to do to it.
+      source.advanceDrivePhase(1);
+      source.reset();
+      expect(source.phase).toBeCloseTo(-Math.PI / 4);
+      expect(source.voltagePhasorProperty.value.phase).toBeCloseTo(-Math.PI / 4);
+      source.dispose();
+    });
+  });
+
   it("reset() restores default amplitude, frequency, and drive phase", () => {
     const source = new ACSourceModel({ amplitude: 5, frequency: 1 });
     source.amplitudeProperty.value = 9;

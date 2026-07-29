@@ -92,6 +92,7 @@ export default class ConfigurableGraph extends Node {
   // Module instances
   private readonly dataManager: GraphDataManager;
   private readonly interactionHandler: GraphInteractionHandler;
+  private readonly controlsPanel: GraphControlsPanel;
 
   // Control buttons
   private readonly rescaleButton: Node;
@@ -273,6 +274,7 @@ export default class ConfigurableGraph extends Node {
       this.yPropertyProperty,
       this.graphWidth,
     );
+    this.controlsPanel = controlsPanel;
 
     // Create title panel with combo boxes for axis selection
     const titlePanel = controlsPanel.createTitlePanel(listParent);
@@ -568,6 +570,25 @@ export default class ConfigurableGraph extends Node {
 
     // Clear all data
     this.clearData();
+  }
+
+  /**
+   * Release everything this graph holds: the pointer listeners, the combo boxes
+   * and their derived Properties, and its own axis-selection state. The
+   * {@link PlottableProperty} list it was given is only ever sampled, never
+   * linked, so those model Properties are left alone.
+   */
+  public override dispose(): void {
+    this.interactionHandler.dispose();
+    this.controlsPanel.dispose();
+    this.headerBar.dispose();
+    this.graphVisibleProperty.dispose();
+    this.isDraggingProperty.dispose();
+    this.isResizingProperty.dispose();
+    // Last: the combo boxes above were listening to these.
+    this.xPropertyProperty.dispose();
+    this.yPropertyProperty.dispose();
+    super.dispose();
   }
 }
 

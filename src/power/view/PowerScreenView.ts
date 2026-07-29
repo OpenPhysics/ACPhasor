@@ -122,6 +122,7 @@ export class PowerScreenView extends ScreenView {
     });
     this.circuit.left = SCREEN_VIEW_MARGIN + 20;
     this.circuit.top = SCREEN_VIEW_MARGIN;
+    this.disposables.push(this.circuit);
 
     // ── Signal scope: v(t) and i(t) ─────────────────────────────────────────
     // No time-axis labels: it shares the axis with the power scope below it, and

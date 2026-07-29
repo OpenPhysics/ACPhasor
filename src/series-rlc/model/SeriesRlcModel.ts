@@ -96,4 +96,13 @@ export class SeriesRlcModel implements TModel {
     this.circuit.reset();
     this.timer.reset();
   }
+
+  /**
+   * Release the listener graph. Every Property this screen exposes belongs to
+   * the circuit, so there is nothing here to dispose beyond it and the clock.
+   */
+  public dispose(): void {
+    this.timer.dispose();
+    this.circuit.dispose();
+  }
 }

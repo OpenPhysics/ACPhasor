@@ -10,14 +10,26 @@
 import { DerivedProperty, Property, StringProperty } from "scenerystack/axon";
 import { Range, Vector2 } from "scenerystack/dot";
 import { ModelViewTransform2 } from "scenerystack/phetcommon";
+import { Node } from "scenerystack/scenery";
 import { describe, expect, it } from "vitest";
+import ACPhasorColors from "../src/ACPhasorColors.js";
+import { CAPACITANCE_RANGE_F, INDUCTANCE_RANGE_H } from "../src/ACPhasorConstants.js";
 import { Phasor } from "../src/common/model/Phasor.js";
+import { RlcCircuitModel } from "../src/common/model/RlcCircuitModel.js";
 import { TimeModel } from "../src/common/TimeModel.js";
+import { CircuitDiagramNode } from "../src/common/view/CircuitDiagramNode.js";
+import ConfigurableGraph from "../src/common/view/graph/ConfigurableGraph.js";
+import type { PlottableProperty } from "../src/common/view/graph/PlottableProperty.js";
+import { InductorNode } from "../src/common/view/InductorNode.js";
 import { PhaseArcNode } from "../src/common/view/PhaseArcNode.js";
 import { PhasorChainNode } from "../src/common/view/PhasorChainNode.js";
 import { PhasorNode } from "../src/common/view/PhasorNode.js";
+import { ResistorNode } from "../src/common/view/ResistorNode.js";
 import { SimNumberControl } from "../src/common/view/SimNumberControl.js";
+import { IntroModel } from "../src/intro/model/IntroModel.js";
 import { PowerModel } from "../src/power/model/PowerModel.js";
+import { ResonanceModel } from "../src/resonance/model/ResonanceModel.js";
+import { SeriesRlcModel } from "../src/series-rlc/model/SeriesRlcModel.js";
 
 /**
  * Force garbage collection with multiple passes. When `earlyExitRef` is supplied
@@ -39,6 +51,14 @@ async function forceGC(earlyExitRef?: WeakRef<object>): Promise<void> {
 
 function createAndDisposeTimeModel(): WeakRef<object> {
   const model = new TimeModel();
+  const ref = new WeakRef<object>(model);
+  model.dispose();
+  return ref;
+}
+
+/** Builds one screen model, disposes it, and hands back only a WeakRef to it. */
+function createAndDisposeModel(create: () => { dispose(): void }): WeakRef<object> {
+  const model = create();
   const ref = new WeakRef<object>(model);
   model.dispose();
   return ref;
@@ -75,6 +95,66 @@ describe("Memory leak regression", () => {
     await forceGC();
     const survivors = refs.filter((r) => r.deref() !== undefined).length;
     expect(survivors).toBe(0);
+  });
+
+  /**
+   * The screen models are where the biggest listener graphs in the sim live:
+   * {@link RlcCircuitModel} alone builds seventeen DerivedProperties over a
+   * composed source. A screen swap discards a model, so every one of those has
+   * to come apart again — otherwise the source's frequency Property accumulates
+   * a fresh set of listeners for every screen ever opened, and goes on driving
+   * all of them.
+   */
+  describe("models release their derived Properties", () => {
+    it("RlcCircuitModel lets go of its own inputs on dispose", () => {
+      const circuit = new RlcCircuitModel();
+      // Z listens to all three elements and to ω; ω listens to f.
+      expect(circuit.resistanceProperty.hasListeners()).toBe(true);
+      expect(circuit.inductanceProperty.hasListeners()).toBe(true);
+      expect(circuit.capacitanceProperty.hasListeners()).toBe(true);
+      expect(circuit.source.frequencyProperty.hasListeners()).toBe(true);
+      expect(circuit.source.amplitudeProperty.hasListeners()).toBe(true);
+
+      circuit.dispose();
+
+      expect(circuit.resistanceProperty.hasListeners()).toBe(false);
+      expect(circuit.inductanceProperty.hasListeners()).toBe(false);
+      expect(circuit.capacitanceProperty.hasListeners()).toBe(false);
+      expect(circuit.source.frequencyProperty.hasListeners()).toBe(false);
+      expect(circuit.source.amplitudeProperty.hasListeners()).toBe(false);
+    });
+
+    it("PowerModel's power Properties let go of the circuit on dispose", () => {
+      const model = new PowerModel();
+      expect(model.circuit.phaseProperty.hasListeners()).toBe(true);
+
+      model.dispose();
+
+      expect(model.circuit.phaseProperty.hasListeners()).toBe(false);
+      expect(model.circuit.source.frequencyProperty.hasListeners()).toBe(false);
+    });
+
+    it("IntroModel lets go of its element selection on dispose", () => {
+      const model = new IntroModel();
+      expect(model.elementTypeProperty.hasListeners()).toBe(true);
+
+      model.dispose();
+
+      expect(model.elementTypeProperty.hasListeners()).toBe(false);
+      expect(model.source.frequencyProperty.hasListeners()).toBe(false);
+    });
+
+    it.each([
+      ["IntroModel", () => new IntroModel()],
+      ["SeriesRlcModel", () => new SeriesRlcModel()],
+      ["ResonanceModel", () => new ResonanceModel()],
+      ["PowerModel", () => new PowerModel()],
+      ["RlcCircuitModel", () => new RlcCircuitModel()],
+    ] as const)("%s is collected after dispose", async (_name, create) => {
+      const ref = createAndDisposeModel(create);
+      await forceGC(ref);
+      expect(ref.deref()).toBeUndefined();
+    });
   });
 
   /**
@@ -179,6 +259,92 @@ describe("Memory leak regression", () => {
       }
       expect(model.realPowerPhasorProperty.hasListeners()).toBe(false);
       expect(model.apparentPowerPhasorProperty.hasListeners()).toBe(false);
+    });
+
+    it("ResistorNode unlinks its resistance on dispose", () => {
+      const resistanceProperty = new Property(47);
+
+      const node = new ResistorNode({ resistanceProperty: resistanceProperty });
+      expect(resistanceProperty.hasListeners()).toBe(true);
+
+      node.dispose();
+      expect(resistanceProperty.hasListeners()).toBe(false);
+    });
+
+    it("InductorNode unlinks its inductance on dispose", () => {
+      const inductanceProperty = new Property(2);
+
+      const node = new InductorNode({
+        inductanceProperty: inductanceProperty,
+        inductanceRange: INDUCTANCE_RANGE_H,
+      });
+      expect(inductanceProperty.hasListeners()).toBe(true);
+
+      node.dispose();
+      expect(inductanceProperty.hasListeners()).toBe(false);
+    });
+
+    it("CircuitDiagramNode lets go of every slot Property on dispose", () => {
+      // The Intro screen's shape: one slot whose type follows a Property, with
+      // all three element values bound. Three parts are built, so three sets of
+      // listeners go onto the model — every screen swap would add another.
+      const typeProperty = new Property<"resistor" | "inductor" | "capacitor">("resistor");
+      const resistanceProperty = new Property(47);
+      const inductanceProperty = new Property(2);
+      const capacitanceProperty = new Property(0.5);
+      const voltageProperty = new Property(new Phasor(5, 0));
+
+      const node = new CircuitDiagramNode({
+        sourceVoltageProperty: voltageProperty,
+        slots: [
+          {
+            typeProperty: typeProperty,
+            resistanceProperty: resistanceProperty,
+            inductanceProperty: inductanceProperty,
+            inductanceRange: INDUCTANCE_RANGE_H,
+            capacitanceProperty: capacitanceProperty,
+            capacitanceRange: CAPACITANCE_RANGE_F,
+            voltageProperty: voltageProperty,
+          },
+        ],
+      });
+      expect(typeProperty.hasListeners()).toBe(true);
+      expect(resistanceProperty.hasListeners()).toBe(true);
+      expect(inductanceProperty.hasListeners()).toBe(true);
+      expect(capacitanceProperty.hasListeners()).toBe(true);
+
+      node.dispose();
+
+      expect(typeProperty.hasListeners()).toBe(false);
+      expect(resistanceProperty.hasListeners()).toBe(false);
+      expect(inductanceProperty.hasListeners()).toBe(false);
+      expect(capacitanceProperty.hasListeners()).toBe(false);
+    });
+
+    it("ConfigurableGraph lets go of the global color it darkens, and never links its data", () => {
+      const frequencyProperty = new Property(1);
+      const currentProperty = new Property(0.2);
+      const plottables: PlottableProperty[] = [
+        { name: "Frequency", property: frequencyProperty, unit: "Hz" },
+        { name: "Current", property: currentProperty, unit: "A" },
+      ];
+      // The header bar darkens a *global* color Property, so a graph that never
+      // let go of it would leak once per construction for the life of the sim.
+      const before = ACPhasorColors.panelBackgroundColorProperty.getListenerCount();
+
+      const first = plottables[0];
+      const second = plottables[1];
+      if (!(first && second)) {
+        throw new Error("expected two plottable properties");
+      }
+      const graph = new ConfigurableGraph(plottables, first, second, 300, 200, new Node());
+      expect(ACPhasorColors.panelBackgroundColorProperty.getListenerCount()).toBeGreaterThan(before);
+      // The axis Properties are sampled once per frame, never linked.
+      expect(frequencyProperty.hasListeners()).toBe(false);
+      expect(currentProperty.hasListeners()).toBe(false);
+
+      graph.dispose();
+      expect(ACPhasorColors.panelBackgroundColorProperty.getListenerCount()).toBe(before);
     });
 
     it("a logarithmic SimNumberControl unbridges from its model Property", () => {
