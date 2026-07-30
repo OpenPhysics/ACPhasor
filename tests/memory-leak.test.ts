@@ -7,7 +7,13 @@
  * a block scope) so local strong references die when the helper returns.
  */
 
-import { DerivedProperty, Property, StringProperty } from "scenerystack/axon";
+import {
+  DerivedProperty,
+  Property,
+  type ReadOnlyProperty,
+  StringProperty,
+  type TReadOnlyProperty,
+} from "scenerystack/axon";
 import { Range, Vector2 } from "scenerystack/dot";
 import { ModelViewTransform2 } from "scenerystack/phetcommon";
 import { Node } from "scenerystack/scenery";
@@ -62,6 +68,27 @@ function createAndDisposeModel(create: () => { dispose(): void }): WeakRef<objec
   const ref = new WeakRef<object>(model);
   model.dispose();
   return ref;
+}
+
+/**
+ * Whether `property` has any linked listeners.
+ *
+ * `TReadOnlyProperty` exposes only `hasListener(listener)`; `hasListeners()` lives
+ * on `ReadOnlyProperty` but is omitted from the interface type.
+ */
+function hasAnyListeners<T>(property: TReadOnlyProperty<T>): boolean {
+  return (property as ReadOnlyProperty<T>).hasListeners();
+}
+
+/**
+ * Number of listeners currently attached to `property`.
+ *
+ * Axon's TinyEmitter exposes getListenerCount() publicly but ReadOnlyProperty
+ * re-declares it private, so the cast is deliberate. The public alternative,
+ * hasListeners(), is too coarse when the property always carries baseline listeners.
+ */
+function listenerCount<T>(property: TReadOnlyProperty<T>): number {
+  return (property as unknown as { getListenerCount(): number }).getListenerCount();
 }
 
 describe("Memory leak regression", () => {
@@ -126,11 +153,11 @@ describe("Memory leak regression", () => {
 
     it("PowerModel's power Properties let go of the circuit on dispose", () => {
       const model = new PowerModel();
-      expect(model.circuit.phaseProperty.hasListeners()).toBe(true);
+      expect(hasAnyListeners(model.circuit.phaseProperty)).toBe(true);
 
       model.dispose();
 
-      expect(model.circuit.phaseProperty.hasListeners()).toBe(false);
+      expect(hasAnyListeners(model.circuit.phaseProperty)).toBe(false);
       expect(model.circuit.source.frequencyProperty.hasListeners()).toBe(false);
     });
 
@@ -257,8 +284,8 @@ describe("Memory leak regression", () => {
       for (const derived of [scaledReal, scaledReactive, scaledApparent, scale]) {
         derived.dispose();
       }
-      expect(model.realPowerPhasorProperty.hasListeners()).toBe(false);
-      expect(model.apparentPowerPhasorProperty.hasListeners()).toBe(false);
+      expect(hasAnyListeners(model.realPowerPhasorProperty)).toBe(false);
+      expect(hasAnyListeners(model.apparentPowerPhasorProperty)).toBe(false);
     });
 
     it("ResistorNode unlinks its resistance on dispose", () => {
@@ -330,7 +357,7 @@ describe("Memory leak regression", () => {
       ];
       // The header bar darkens a *global* color Property, so a graph that never
       // let go of it would leak once per construction for the life of the sim.
-      const before = ACPhasorColors.panelBackgroundColorProperty.getListenerCount();
+      const before = listenerCount(ACPhasorColors.panelBackgroundColorProperty);
 
       const first = plottables[0];
       const second = plottables[1];
@@ -338,13 +365,13 @@ describe("Memory leak regression", () => {
         throw new Error("expected two plottable properties");
       }
       const graph = new ConfigurableGraph(plottables, first, second, 300, 200, new Node());
-      expect(ACPhasorColors.panelBackgroundColorProperty.getListenerCount()).toBeGreaterThan(before);
+      expect(listenerCount(ACPhasorColors.panelBackgroundColorProperty)).toBeGreaterThan(before);
       // The axis Properties are sampled once per frame, never linked.
       expect(frequencyProperty.hasListeners()).toBe(false);
       expect(currentProperty.hasListeners()).toBe(false);
 
       graph.dispose();
-      expect(ACPhasorColors.panelBackgroundColorProperty.getListenerCount()).toBe(before);
+      expect(listenerCount(ACPhasorColors.panelBackgroundColorProperty)).toBe(before);
     });
 
     it("a logarithmic SimNumberControl unbridges from its model Property", () => {
