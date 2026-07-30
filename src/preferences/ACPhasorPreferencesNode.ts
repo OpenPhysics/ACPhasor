@@ -19,20 +19,23 @@ export class ACPhasorPreferencesNode extends VBox {
   public constructor(preferencesModel: ACPhasorPreferencesModel, tandem?: Tandem) {
     const prefStrings = StringManager.getInstance().getPreferences();
 
+    // The Preferences dialog is always white, so use the dark "light control surface"
+    // colors (readable on white in both default and projector profiles), not textColorProperty
+    // (which is near-white in default mode and would be invisible on the white dialog).
     const header = new Text(prefStrings.titleStringProperty, {
       font: new PhetFont({ size: 18, weight: "bold" }),
-      fill: ACPhasorColors.textColorProperty,
+      fill: ACPhasorColors.controlSurfaceTextColorProperty,
     });
 
     const exampleToggleCheckbox = new Checkbox(
       preferencesModel.exampleToggleProperty,
       new Text(prefStrings.exampleToggleStringProperty, {
         font: new PhetFont(14),
-        fill: ACPhasorColors.textColorProperty,
+        fill: ACPhasorColors.controlSurfaceTextColorProperty,
       }),
       {
-        checkboxColor: ACPhasorColors.textColorProperty,
-        checkboxColorBackground: ACPhasorColors.panelBackgroundColorProperty,
+        checkboxColor: ACPhasorColors.controlSurfaceTextColorProperty,
+        checkboxColorBackground: ACPhasorColors.controlSurfaceColorProperty,
         spacing: 8,
         ...(tandem && { tandem: tandem.createTandem("exampleToggleCheckbox") }),
       },
