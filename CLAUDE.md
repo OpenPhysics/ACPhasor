@@ -6,7 +6,7 @@ Sim-specific context for AI assistants. General SceneryStack guidance: [OpenPhys
 
 AC phasor simulation (framework): electromagnetic components R, L, and C with four
 screens — Intro (single element), Series RLC, Resonance (frequency sweep), and Power.
-Forked from `TemplateSingleSim`.
+Forked from `SceneryStackTemplate`.
 
 ## Key files
 
