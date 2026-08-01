@@ -14,10 +14,10 @@ import type { ChartRectangle, ChartTransform, TickLabelSet } from "scenerystack/
 import { Range, Vector2 } from "scenerystack/dot";
 import {
   DragListener,
-  KeyboardDragListener,
   type Node,
   type Pointer,
   Rectangle,
+  RichDragListener,
   type TInputListener,
 } from "scenerystack/scenery";
 import ACPhasorColors from "../../../ACPhasorColors.js";
@@ -197,61 +197,36 @@ export default class GraphInteractionHandler {
     let dragStartXRange: Range | null = null;
     let dragStartYRange: Range | null = null;
 
-    const dragListener = new DragListener({
-      start: (event) => {
-        // Record the starting point in model coordinates
-        const viewPoint = this.chartRectangle.globalToLocalPoint(event.pointer.point);
-        dragStartModelPoint = this.chartTransform.viewToModelPosition(viewPoint);
-        dragStartXRange = this.chartTransform.modelXRange.copy();
-        dragStartYRange = this.chartTransform.modelYRange.copy();
-
-        // Mark as manually zoomed so auto-scaling doesn't interfere
-        this.dataManager.setManuallyZoomed(true);
-      },
-
-      drag: (event) => {
-        if (dragStartModelPoint && dragStartXRange && dragStartYRange) {
-          // Get current point in model coordinates
+    const dragListener = new RichDragListener({
+      dragListenerOptions: {
+        start: (event) => {
           const viewPoint = this.chartRectangle.globalToLocalPoint(event.pointer.point);
-          const currentModelPoint = this.chartTransform.viewToModelPosition(viewPoint);
-
-          // Calculate the delta in model coordinates
-          const deltaX = dragStartModelPoint.x - currentModelPoint.x;
-          const deltaY = dragStartModelPoint.y - currentModelPoint.y;
-
-          // Translate the ranges by the delta
-          const newXRange = new Range(dragStartXRange.min + deltaX, dragStartXRange.max + deltaX);
-          const newYRange = new Range(dragStartYRange.min + deltaY, dragStartYRange.max + deltaY);
-
-          // Update the chart transform
-          this.chartTransform.setModelXRange(newXRange);
-          this.chartTransform.setModelYRange(newYRange);
-
-          // Update tick spacing
-          this.dataManager.updateTickSpacing(newXRange, newYRange);
-
-          // Update trail with new transform
-          this.dataManager.updateTrail();
-        }
+          dragStartModelPoint = this.chartTransform.viewToModelPosition(viewPoint);
+          dragStartXRange = this.chartTransform.modelXRange.copy();
+          dragStartYRange = this.chartTransform.modelYRange.copy();
+          this.dataManager.setManuallyZoomed(true);
+        },
+        drag: (event) => {
+          if (dragStartModelPoint && dragStartXRange && dragStartYRange) {
+            const viewPoint = this.chartRectangle.globalToLocalPoint(event.pointer.point);
+            const currentModelPoint = this.chartTransform.viewToModelPosition(viewPoint);
+            const deltaX = dragStartModelPoint.x - currentModelPoint.x;
+            const deltaY = dragStartModelPoint.y - currentModelPoint.y;
+            const newXRange = new Range(dragStartXRange.min + deltaX, dragStartXRange.max + deltaX);
+            const newYRange = new Range(dragStartYRange.min + deltaY, dragStartYRange.max + deltaY);
+            this.chartTransform.setModelXRange(newXRange);
+            this.chartTransform.setModelYRange(newYRange);
+            this.dataManager.updateTickSpacing(newXRange, newYRange);
+            this.dataManager.updateTrail();
+          }
+        },
+        end: () => {
+          dragStartModelPoint = null;
+          dragStartXRange = null;
+          dragStartYRange = null;
+        },
       },
-
-      end: () => {
-        // Clean up
-        dragStartModelPoint = null;
-        dragStartXRange = null;
-        dragStartYRange = null;
-      },
-    });
-
-    this.attach(this.chartRectangle, dragListener);
-    this.chartRectangle.cursor = "move";
-
-    // Keyboard pan: arrow keys translate the chart model ranges.
-    this.chartRectangle.focusable = true;
-    this.chartRectangle.tagName = "div";
-    this.attach(
-      this.chartRectangle,
-      new KeyboardDragListener({
+      keyboardDragListenerOptions: {
         dragSpeed: 200,
         shiftDragSpeed: 60,
         start: () => {
@@ -271,8 +246,15 @@ export default class GraphInteractionHandler {
           this.dataManager.updateTickSpacing(newXRange, newYRange);
           this.dataManager.updateTrail();
         },
-      }),
-    );
+      },
+    });
+
+    this.attach(this.chartRectangle, dragListener);
+    this.chartRectangle.cursor = "move";
+
+    // Keyboard pan: arrow keys translate the chart model ranges.
+    this.chartRectangle.focusable = true;
+    this.chartRectangle.tagName = "div";
   }
 
   /**
