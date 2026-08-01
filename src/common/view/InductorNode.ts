@@ -37,6 +37,7 @@
 import type { TReadOnlyProperty } from "scenerystack/axon";
 import { Bounds2, Dimension2, type Range, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { Node, Path, Rectangle, Text } from "scenerystack/scenery";
 import { ArrowNode, MinusNode, PlusNode } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
@@ -47,7 +48,7 @@ import {
 } from "../../ACPhasorConstants.js";
 import { CircuitElementNode } from "./CircuitElementNode.js";
 
-type SelfOptions = {
+type InductorNodeSelfOptions = {
   /** Length of the wound section in pixels. */
   coilLength?: number;
   /** Radius of a winding in pixels (half the coil's height). */
@@ -60,11 +61,11 @@ type SelfOptions = {
    * part grows leads to reach it — this is how every element in a slot ends up
    * with the same footprint.
    */
-  terminalHalfWidth?: number;
+  terminalHalfWidth?: number | null;
   /** Inductance in henries; when given, the number of turns follows it. */
-  inductanceProperty?: TReadOnlyProperty<number>;
+  inductanceProperty?: TReadOnlyProperty<number> | null;
   /** Range the inductance is mapped over; required for `inductanceProperty` to matter. */
-  inductanceRange?: Range;
+  inductanceRange?: Range | null;
   /** Flux arrows drawn through the core at full field. */
   fluxArrowCount?: number;
   /** Closed field loops drawn around the coil at full field. */
@@ -74,6 +75,8 @@ type SelfOptions = {
   /** Radial spacing between consecutive field loops, in pixels. */
   fluxLoopSpacing?: number;
 };
+
+export type InductorNodeOptions = InductorNodeSelfOptions;
 
 /** Shortest / longest a flux arrow is drawn, in pixels. */
 const MIN_FLUX_ARROW_LENGTH = 9;
@@ -122,18 +125,23 @@ export class InductorNode extends CircuitElementNode {
   /** Releases the caller's inductance Property; undefined when none was given. */
   private unlinkInductance: (() => void) | undefined;
 
-  public constructor(providedOptions?: SelfOptions) {
-    const options = {
-      coilLength: 62,
-      coilRadius: 13,
-      minTurns: 4,
-      maxTurns: 9,
-      fluxArrowCount: 3,
-      fluxLoopCount: INDUCTOR_FLUX_LOOP_COUNT,
-      fluxInnerRadius: INDUCTOR_FLUX_INNER_RADIUS,
-      fluxLoopSpacing: INDUCTOR_FLUX_LOOP_SPACING,
-      ...providedOptions,
-    };
+  public constructor(providedOptions?: InductorNodeOptions) {
+    const options = optionize<InductorNodeOptions, InductorNodeSelfOptions, EmptySelfOptions>()(
+      {
+        coilLength: 62,
+        coilRadius: 13,
+        minTurns: 4,
+        maxTurns: 9,
+        fluxArrowCount: 3,
+        fluxLoopCount: INDUCTOR_FLUX_LOOP_COUNT,
+        fluxInnerRadius: INDUCTOR_FLUX_INNER_RADIUS,
+        fluxLoopSpacing: INDUCTOR_FLUX_LOOP_SPACING,
+        terminalHalfWidth: null,
+        inductanceProperty: null,
+        inductanceRange: null,
+      },
+      providedOptions,
+    );
 
     super();
 

@@ -37,6 +37,7 @@
 
 import { DerivedProperty, Property, type TReadOnlyProperty } from "scenerystack/axon";
 import { Vector2 } from "scenerystack/dot";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import type { ModelViewTransform2 } from "scenerystack/phetcommon";
 import { Node, type TColor } from "scenerystack/scenery";
 import type { Phasor } from "../model/Phasor.js";
@@ -52,30 +53,38 @@ export type PhasorChainLink = {
   arrowOptions?: PhasorNodeOptions;
 };
 
-type SelfOptions = {
+type PhasorChainNodeSelfOptions = {
   /**
    * True draws the links head to tail; false draws them all from the origin.
    * Omit for a chain that is always head to tail.
    */
-  tipToTailProperty?: TReadOnlyProperty<boolean>;
+  tipToTailProperty?: TReadOnlyProperty<boolean> | null;
   /**
    * The sum of the links, drawn from the origin in both arrangements. In
    * head-to-tail mode it closes the figure onto the last link's tip.
    */
-  resultant?: PhasorChainLink;
+  resultant?: PhasorChainLink | null;
 };
+
+export type PhasorChainNodeOptions = PhasorChainNodeSelfOptions;
 
 export class PhasorChainNode extends Node {
   /** Properties this node created, and so is responsible for disposing. */
   private readonly ownedProperties: { dispose(): void }[] = [];
   private readonly phasorNodes: PhasorNode[] = [];
 
-  public constructor(links: PhasorChainLink[], modelViewTransform: ModelViewTransform2, providedOptions?: SelfOptions) {
-    const options = {
-      tipToTailProperty: null as TReadOnlyProperty<boolean> | null,
-      resultant: null as PhasorChainLink | null,
-      ...providedOptions,
-    };
+  public constructor(
+    links: PhasorChainLink[],
+    modelViewTransform: ModelViewTransform2,
+    providedOptions?: PhasorChainNodeOptions,
+  ) {
+    const options = optionize<PhasorChainNodeOptions, PhasorChainNodeSelfOptions, EmptySelfOptions>()(
+      {
+        tipToTailProperty: null as TReadOnlyProperty<boolean> | null,
+        resultant: null as PhasorChainLink | null,
+      },
+      providedOptions,
+    );
 
     super();
 

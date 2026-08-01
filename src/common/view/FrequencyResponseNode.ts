@@ -49,7 +49,7 @@ import {
 } from "scenerystack/bamboo";
 import { Bounds2, Range, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
-import { Orientation } from "scenerystack/phet-core";
+import { type EmptySelfOptions, Orientation, optionize } from "scenerystack/phet-core";
 import { Circle, type Font, Line, Node, Path, type TColor, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
@@ -67,7 +67,7 @@ const CAPTION_GUTTER = 18;
 /** Samples across the width. The peak can be narrow, so this is generous. */
 const DEFAULT_SAMPLE_COUNT = 300;
 
-type SelfOptions = {
+type FrequencyResponseNodeSelfOptions = {
   /** Plot width in view pixels (the full frequency range). */
   viewWidth?: number;
   /** Plot height in view pixels. */
@@ -113,6 +113,8 @@ type SelfOptions = {
   captionFont?: Font;
 };
 
+export type FrequencyResponseNodeOptions = FrequencyResponseNodeSelfOptions;
+
 export class FrequencyResponseNode extends Node {
   private readonly chartTransform: ChartTransform;
   private readonly linePlot: LinePlot;
@@ -139,30 +141,32 @@ export class FrequencyResponseNode extends Node {
   private curve: ((frequency: number) => number) | null = null;
   private markerFrequency: number;
 
-  public constructor(providedOptions: SelfOptions) {
-    const options = {
-      viewWidth: 500,
-      viewHeight: 140,
-      sampleCount: DEFAULT_SAMPLE_COUNT,
-      stroke: ACPhasorColors.accentColorProperty as TColor,
-      label: "",
-      units: null as string | null,
-      yRange: null as Range | null,
-      autoScale: false,
-      minimumFullScale: 0,
-      showFrequencyAxisLabels: true,
-      // Math notation by default, as on the scope's time axis; the Resonance
-      // screen overrides it with a localized StringProperty, which is what this
-      // option is for.
-      frequencyAxisLabel: "f (Hz)" as string | TReadOnlyProperty<string>,
-      axisColor: ACPhasorColors.textColorProperty as TColor,
-      gridColor: ACPhasorColors.panelBorderColorProperty as TColor,
-      labelColor: ACPhasorColors.textColorProperty as TColor,
-      resonanceColor: ACPhasorColors.resonanceHighlightColorProperty as TColor,
-      labelFont: new PhetFont(10),
-      captionFont: new PhetFont(12),
-      ...providedOptions,
-    };
+  public constructor(providedOptions: FrequencyResponseNodeOptions) {
+    const options = optionize<FrequencyResponseNodeOptions, FrequencyResponseNodeSelfOptions, EmptySelfOptions>()(
+      {
+        viewWidth: 500,
+        viewHeight: 140,
+        sampleCount: DEFAULT_SAMPLE_COUNT,
+        stroke: ACPhasorColors.accentColorProperty as TColor,
+        label: "",
+        units: null as string | null,
+        yRange: null as Range | null,
+        autoScale: false,
+        minimumFullScale: 0,
+        showFrequencyAxisLabels: true,
+        // Math notation by default, as on the scope's time axis; the Resonance
+        // screen overrides it with a localized StringProperty, which is what this
+        // option is for.
+        frequencyAxisLabel: "f (Hz)" as string | TReadOnlyProperty<string>,
+        axisColor: ACPhasorColors.textColorProperty as TColor,
+        gridColor: ACPhasorColors.panelBorderColorProperty as TColor,
+        labelColor: ACPhasorColors.textColorProperty as TColor,
+        resonanceColor: ACPhasorColors.resonanceHighlightColorProperty as TColor,
+        labelFont: new PhetFont(10),
+        captionFont: new PhetFont(12),
+      },
+      providedOptions,
+    );
 
     super();
 

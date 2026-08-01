@@ -19,11 +19,12 @@
  */
 
 import { Shape } from "scenerystack/kite";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { type Node, Path, type TColor } from "scenerystack/scenery";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import type { CircuitElementType } from "../model/Impedance.js";
 
-export type CircuitSymbolOptions = {
+type CircuitSymbolSelfOptions = {
   /** Overall width of the symbol in pixels, leads included. */
   width?: number;
   /**
@@ -31,7 +32,7 @@ export type CircuitSymbolOptions = {
    * zigzag, winding radius for the inductor, plate length for the capacitor.
    * Defaults to a proportion of the width that keeps the three in step.
    */
-  height?: number;
+  height?: number | null;
   /** Stroke width of the glyph in pixels. */
   lineWidth?: number;
   /** Stroke color; defaults to the element's accent color. */
@@ -39,6 +40,8 @@ export type CircuitSymbolOptions = {
   /** Whether to draw the short wire stubs on either side of the glyph. */
   showLeads?: boolean;
 };
+
+export type CircuitSymbolOptions = CircuitSymbolSelfOptions;
 
 const DEFAULT_WIDTH = 46;
 const DEFAULT_LINE_WIDTH = 3;
@@ -57,21 +60,35 @@ const COIL_LOOPS = 4;
 /** Half the plate separation, as a fraction of the width. */
 const PLATE_GAP_FRACTION = 0.09;
 
-type ResolvedOptions = Required<Omit<CircuitSymbolOptions, "stroke">> & { stroke: TColor };
+type ResolvedOptions = {
+  width: number;
+  height: number;
+  lineWidth: number;
+  showLeads: boolean;
+  stroke: TColor;
+};
 
 function resolve(
   defaultStroke: TColor,
   defaultHeightFraction: number,
   providedOptions?: CircuitSymbolOptions,
 ): ResolvedOptions {
-  const width = providedOptions?.width ?? DEFAULT_WIDTH;
+  const options = optionize<CircuitSymbolOptions, CircuitSymbolSelfOptions, EmptySelfOptions>()(
+    {
+      width: DEFAULT_WIDTH,
+      height: null,
+      lineWidth: DEFAULT_LINE_WIDTH,
+      showLeads: true,
+      stroke: defaultStroke,
+    },
+    providedOptions,
+  );
   return {
-    width: width,
-    height: width * defaultHeightFraction,
-    lineWidth: DEFAULT_LINE_WIDTH,
-    showLeads: true,
-    stroke: defaultStroke,
-    ...providedOptions,
+    width: options.width,
+    height: options.height ?? options.width * defaultHeightFraction,
+    lineWidth: options.lineWidth,
+    showLeads: options.showLeads,
+    stroke: options.stroke,
   };
 }
 

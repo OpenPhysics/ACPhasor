@@ -25,10 +25,11 @@
 import { Multilink, type TReadOnlyProperty } from "scenerystack/axon";
 import { Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import type { ModelViewTransform2 } from "scenerystack/phetcommon";
 import { Node, Path, RichText, type TColor } from "scenerystack/scenery";
 
-type SelfOptions = {
+type PhaseArcNodeSelfOptions = {
   /** Radius of the arc in model units, measured from the complex-plane origin. */
   modelRadius?: number;
   /** Arc color; the label follows it. */
@@ -47,6 +48,8 @@ type SelfOptions = {
   minimumAngle?: number;
 };
 
+export type PhaseArcNodeOptions = PhaseArcNodeSelfOptions;
+
 export class PhaseArcNode extends Node {
   private readonly updateMultilink: ReturnType<typeof Multilink.multilink>;
 
@@ -54,17 +57,19 @@ export class PhaseArcNode extends Node {
     fromAngleProperty: TReadOnlyProperty<number>,
     toAngleProperty: TReadOnlyProperty<number>,
     modelViewTransform: ModelViewTransform2,
-    providedOptions?: SelfOptions,
+    providedOptions?: PhaseArcNodeOptions,
   ) {
-    const options = {
-      modelRadius: 0.45,
-      stroke: "black" as TColor,
-      lineWidth: 1.5,
-      labelFont: "italic 13px sans-serif",
-      showLabel: true,
-      minimumAngle: (2 * Math.PI) / 180,
-      ...providedOptions,
-    };
+    const options = optionize<PhaseArcNodeOptions, PhaseArcNodeSelfOptions, EmptySelfOptions>()(
+      {
+        modelRadius: 0.45,
+        stroke: "black" as TColor,
+        lineWidth: 1.5,
+        labelFont: "italic 13px sans-serif",
+        showLabel: true,
+        minimumAngle: (2 * Math.PI) / 180,
+      },
+      providedOptions,
+    );
 
     super();
 

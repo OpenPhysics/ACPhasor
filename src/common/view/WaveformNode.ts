@@ -74,7 +74,7 @@ import {
 } from "scenerystack/bamboo";
 import { Bounds2, Range, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
-import { Orientation } from "scenerystack/phet-core";
+import { type EmptySelfOptions, Orientation, optionize } from "scenerystack/phet-core";
 import { Circle, type Font, HBox, Line, Node, Path, type TColor, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
@@ -145,7 +145,7 @@ export type WaveformTraceOptions = {
   captionValue?: "peak" | "average";
 };
 
-type SelfOptions = {
+type WaveformNodeSelfOptions = {
   /** Plot width in view pixels (the full time window). */
   viewWidth?: number;
   /** Plot height in view pixels; ±full scale maps to ±viewHeight/2. */
@@ -158,7 +158,7 @@ type SelfOptions = {
    * The traces to plot. When omitted, a single left-axis trace is built from the
    * `stroke` / `label` / `units` / `maxAmplitude` / `autoScale` options below.
    */
-  traces?: WaveformTraceOptions[];
+  traces?: WaveformTraceOptions[] | null;
   /** Axis color. */
   axisColor?: TColor;
   /** Grid line color. */
@@ -195,6 +195,8 @@ type SelfOptions = {
   /** See {@link WaveformTraceOptions.minimumFullScale}. */
   minimumFullScale?: number;
 };
+
+export type WaveformNodeOptions = WaveformNodeSelfOptions;
 
 /**
  * One vertical axis: its transform, the grid and ticks that read against it, and
@@ -261,32 +263,35 @@ export class WaveformNode extends Node {
   /** Last playhead position in the visible window (seconds), for the Θ form above. */
   private cursorWrappedTime = 0;
 
-  public constructor(providedOptions?: SelfOptions) {
-    const options = {
-      viewWidth: 260,
-      viewHeight: 120,
-      timeWindow: 2,
-      sampleCount: 200,
-      axisColor: ACPhasorColors.textColorProperty as TColor,
-      gridColor: ACPhasorColors.panelBorderColorProperty as TColor,
-      labelColor: ACPhasorColors.textColorProperty as TColor,
-      showCursor: false,
-      showPeakValue: true,
-      showTimeAxisLabels: true,
-      // Quantity symbol plus SI unit, deliberately not localized — same
-      // convention as the "Re"/"Im" axes of PhasorDiagramNode. Override it to
-      // pass a localized string where a screen wants words instead.
-      timeAxisLabel: "t (s)",
-      labelFont: new PhetFont(10),
-      captionFont: new PhetFont(12),
-      stroke: ACPhasorColors.accentColorProperty as TColor,
-      label: null as string | null,
-      units: null as string | null,
-      maxAmplitude: 10,
-      autoScale: false,
-      minimumFullScale: 0,
-      ...providedOptions,
-    };
+  public constructor(providedOptions?: WaveformNodeOptions) {
+    const options = optionize<WaveformNodeOptions, WaveformNodeSelfOptions, EmptySelfOptions>()(
+      {
+        viewWidth: 260,
+        viewHeight: 120,
+        timeWindow: 2,
+        sampleCount: 200,
+        axisColor: ACPhasorColors.textColorProperty as TColor,
+        gridColor: ACPhasorColors.panelBorderColorProperty as TColor,
+        labelColor: ACPhasorColors.textColorProperty as TColor,
+        showCursor: false,
+        showPeakValue: true,
+        showTimeAxisLabels: true,
+        // Quantity symbol plus SI unit, deliberately not localized — same
+        // convention as the "Re"/"Im" axes of PhasorDiagramNode. Override it to
+        // pass a localized string where a screen wants words instead.
+        timeAxisLabel: "t (s)",
+        labelFont: new PhetFont(10),
+        captionFont: new PhetFont(12),
+        stroke: ACPhasorColors.accentColorProperty as TColor,
+        label: null as string | null,
+        units: null as string | null,
+        maxAmplitude: 10,
+        autoScale: false,
+        minimumFullScale: 0,
+        traces: null,
+      },
+      providedOptions,
+    );
 
     super();
 

@@ -20,11 +20,12 @@
 
 import type { TReadOnlyProperty } from "scenerystack/axon";
 import { Shape } from "scenerystack/kite";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { Node, Path, Rectangle, type TColor, Text } from "scenerystack/scenery";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import { CircuitElementNode } from "./CircuitElementNode.js";
 
-type SelfOptions = {
+type ResistorNodeSelfOptions = {
   /** Length of the ceramic body in pixels. */
   bodyLength?: number;
   /** Diameter of the ceramic body in pixels. */
@@ -34,10 +35,12 @@ type SelfOptions = {
    * part grows metal leads to reach it — this is how every element in a slot
    * ends up with the same footprint.
    */
-  terminalHalfWidth?: number;
+  terminalHalfWidth?: number | null;
   /** Resistance in ohms; when given, the color bands encode this value. */
-  resistanceProperty?: TReadOnlyProperty<number>;
+  resistanceProperty?: TReadOnlyProperty<number> | null;
 };
+
+export type ResistorNodeOptions = ResistorNodeSelfOptions;
 
 /** EIA band colors for digits 0–9. */
 const DIGIT_BAND_COLORS = [
@@ -106,12 +109,16 @@ export class ResistorNode extends CircuitElementNode {
   /** Releases the caller's resistance Property; undefined when none was given. */
   private unlinkResistance: (() => void) | undefined;
 
-  public constructor(providedOptions?: SelfOptions) {
-    const options = {
-      bodyLength: 56,
-      bodyDiameter: 22,
-      ...providedOptions,
-    };
+  public constructor(providedOptions?: ResistorNodeOptions) {
+    const options = optionize<ResistorNodeOptions, ResistorNodeSelfOptions, EmptySelfOptions>()(
+      {
+        bodyLength: 56,
+        bodyDiameter: 22,
+        terminalHalfWidth: null,
+        resistanceProperty: null,
+      },
+      providedOptions,
+    );
 
     super();
 

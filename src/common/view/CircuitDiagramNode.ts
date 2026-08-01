@@ -50,6 +50,7 @@
 import { DerivedProperty, type TReadOnlyProperty } from "scenerystack/axon";
 import { type Range, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { Circle, Node, Path, type TColor, Text } from "scenerystack/scenery";
 import { ArrowNode } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
@@ -94,7 +95,7 @@ type SlotProperties = {
 export type CircuitElementSlot = SlotProperties &
   ({ type: CircuitElementType } | { typeProperty: TReadOnlyProperty<CircuitElementType> });
 
-type SelfOptions = {
+type CircuitDiagramNodeSelfOptions = {
   /**
    * Loop width in view pixels. Each slot takes 2·ELEMENT_HALF_WIDTH of the top
    * edge plus the corner arcs, so give a multi-element loop enough width for
@@ -114,7 +115,7 @@ type SelfOptions = {
   /** Pixels of carrier displacement per unit charge (amps·seconds). */
   chargeVisualScale?: number;
   /** Source voltage phasor — drives the source's terminal polarity marks. */
-  sourceVoltageProperty?: TReadOnlyProperty<Phasor>;
+  sourceVoltageProperty?: TReadOnlyProperty<Phasor> | null;
   /**
    * The reference the voltage-driven decorations are drawn against — a
    * capacitor's plate charge and an inductor's EMF marks:
@@ -129,6 +130,8 @@ type SelfOptions = {
    */
   elementScale?: "absolute" | "peak";
 };
+
+export type CircuitDiagramNodeOptions = CircuitDiagramNodeSelfOptions;
 
 /**
  * Redraws one element's live decoration for the present instant. Each element
@@ -235,18 +238,21 @@ export class CircuitDiagramNode extends Node {
   private readonly arrowCenterX: number;
   private readonly arrowY: number;
 
-  public constructor(providedOptions?: SelfOptions) {
-    const options = {
-      width: 340,
-      height: 165,
-      cornerRadius: 8,
-      slots: [] as CircuitElementSlot[],
-      chargeCount: 40,
-      chargeRadius: 3.5,
-      chargeVisualScale: 900,
-      elementScale: "absolute" as const,
-      ...providedOptions,
-    };
+  public constructor(providedOptions?: CircuitDiagramNodeOptions) {
+    const options = optionize<CircuitDiagramNodeOptions, CircuitDiagramNodeSelfOptions, EmptySelfOptions>()(
+      {
+        width: 340,
+        height: 165,
+        cornerRadius: 8,
+        slots: [] as CircuitElementSlot[],
+        chargeCount: 40,
+        chargeRadius: 3.5,
+        chargeVisualScale: 900,
+        elementScale: "absolute" as const,
+        sourceVoltageProperty: null,
+      },
+      providedOptions,
+    );
 
     super();
 
@@ -267,7 +273,7 @@ export class CircuitDiagramNode extends Node {
     // matching gap at the other, without the dots streaking.
     this.maxSway = (3 * this.perimeter) / options.chargeCount;
     this.pilePitch = 2.4 * options.chargeRadius;
-    this.sourceVoltageProperty = options.sourceVoltageProperty;
+    this.sourceVoltageProperty = options.sourceVoltageProperty ?? undefined;
     this.elementScale = options.elementScale;
 
     const wireColor = ACPhasorColors.wireColorProperty as TColor;

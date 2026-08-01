@@ -19,12 +19,13 @@
 
 import { Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { ModelViewTransform2 } from "scenerystack/phetcommon";
 import { Circle, Node, Path, type TColor, Text } from "scenerystack/scenery";
 import { ArrowNode } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
 
-type SelfOptions = {
+type PhasorDiagramNodeSelfOptions = {
   /** Half-extent of the plane in model units (the value mapped to the diagram edge). */
   modelRadius?: number;
   /** Half-extent of the plane in view pixels (center to edge). */
@@ -42,6 +43,8 @@ type SelfOptions = {
   imaginaryAxisLabel?: string | null;
 };
 
+export type PhasorDiagramNodeOptions = PhasorDiagramNodeSelfOptions;
+
 export class PhasorDiagramNode extends Node {
   /** Maps model (real, imaginary) coordinates to view pixels (y inverted). */
   public readonly modelViewTransform: ModelViewTransform2;
@@ -49,22 +52,24 @@ export class PhasorDiagramNode extends Node {
   /** Half-extent in view pixels; the diagram spans 2·viewRadius in each dimension. */
   public readonly viewRadius: number;
 
-  public constructor(providedOptions?: SelfOptions) {
-    const options = {
-      modelRadius: 10,
-      viewRadius: 120,
-      gridSpacing: 0,
-      referenceCircleRadius: 0,
-      axisColor: ACPhasorColors.textColorProperty as TColor,
-      gridColor: ACPhasorColors.panelBorderColorProperty as TColor,
-      // Math notation, deliberately not localized: "Re" and "Im" are the
-      // international symbols for the two axes of the complex plane, the same
-      // way "V" and "I" label the phasors drawn on it. Pass null to drop them,
-      // or a different string for a screen that wants other axis names.
-      realAxisLabel: "Re" as string | null,
-      imaginaryAxisLabel: "Im" as string | null,
-      ...providedOptions,
-    };
+  public constructor(providedOptions?: PhasorDiagramNodeOptions) {
+    const options = optionize<PhasorDiagramNodeOptions, PhasorDiagramNodeSelfOptions, EmptySelfOptions>()(
+      {
+        modelRadius: 10,
+        viewRadius: 120,
+        gridSpacing: 0,
+        referenceCircleRadius: 0,
+        axisColor: ACPhasorColors.textColorProperty as TColor,
+        gridColor: ACPhasorColors.panelBorderColorProperty as TColor,
+        // Math notation, deliberately not localized: "Re" and "Im" are the
+        // international symbols for the two axes of the complex plane, the same
+        // way "V" and "I" label the phasors drawn on it. Pass null to drop them,
+        // or a different string for a screen that wants other axis names.
+        realAxisLabel: "Re" as string | null,
+        imaginaryAxisLabel: "Im" as string | null,
+      },
+      providedOptions,
+    );
 
     super();
 

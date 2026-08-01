@@ -24,10 +24,10 @@
  */
 import { DerivedProperty, Multilink } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { HBox, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { ResetAllButton, TimeControlNode } from "scenerystack/scenery-phet";
-import type { ScreenViewOptions } from "scenerystack/sim";
-import { ScreenView } from "scenerystack/sim";
+import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import {
   AC_AMPLITUDE_RANGE_V,
@@ -71,6 +71,8 @@ const VOLTAGE_TRACE = 0;
 const CURRENT_TRACE = 1;
 const POWER_TRACE = 0;
 
+export type PowerScreenViewOptions = ScreenViewOptions;
+
 export class PowerScreenView extends ScreenView {
   private readonly model: PowerModel;
   private readonly circuit: CircuitDiagramNode;
@@ -79,11 +81,14 @@ export class PowerScreenView extends ScreenView {
 
   private readonly disposables: { dispose(): void }[] = [];
 
-  public constructor(model: PowerModel, options?: ScreenViewOptions) {
-    super({
-      screenSummaryContent: new PowerScreenSummaryContent(model),
-      ...options,
-    });
+  public constructor(model: PowerModel, providedOptions?: PowerScreenViewOptions) {
+    const options = optionize<PowerScreenViewOptions, EmptySelfOptions, ScreenViewOptions>()(
+      {
+        screenSummaryContent: new PowerScreenSummaryContent(model),
+      },
+      providedOptions,
+    );
+    super(options);
 
     this.model = model;
     const labels = StringManager.getInstance().getLabels();

@@ -13,11 +13,11 @@
  */
 import { DerivedProperty, Multilink, Property } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import type { Color } from "scenerystack/scenery";
 import { Node, Rectangle, VBox } from "scenerystack/scenery";
 import { ResetAllButton, TimeControlNode } from "scenerystack/scenery-phet";
-import type { ScreenViewOptions } from "scenerystack/sim";
-import { ScreenView } from "scenerystack/sim";
+import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { RectangularRadioButtonGroup } from "scenerystack/sun";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import {
@@ -71,6 +71,8 @@ const PICKER_SYMBOL_WIDTH = 50;
 const VOLTAGE_TRACE = 0;
 const CURRENT_TRACE = 1;
 
+export type IntroScreenViewOptions = ScreenViewOptions;
+
 export class IntroScreenView extends ScreenView {
   private readonly model: IntroModel;
 
@@ -88,11 +90,14 @@ export class IntroScreenView extends ScreenView {
   /** Everything linking a model Property, released in {@link dispose}. */
   private readonly disposables: { dispose(): void }[] = [];
 
-  public constructor(model: IntroModel, options?: ScreenViewOptions) {
-    super({
-      screenSummaryContent: new IntroScreenSummaryContent(model),
-      ...options,
-    });
+  public constructor(model: IntroModel, providedOptions?: IntroScreenViewOptions) {
+    const options = optionize<IntroScreenViewOptions, EmptySelfOptions, ScreenViewOptions>()(
+      {
+        screenSummaryContent: new IntroScreenSummaryContent(model),
+      },
+      providedOptions,
+    );
+    super(options);
 
     this.model = model;
     const labels = StringManager.getInstance().getLabels();

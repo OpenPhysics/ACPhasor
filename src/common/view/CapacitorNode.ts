@@ -27,12 +27,13 @@
 
 import { Dimension2, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { Node, Path, Text } from "scenerystack/scenery";
 import { ArrowNode, MinusNode, PlusNode } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import { CircuitElementNode } from "./CircuitElementNode.js";
 
-type SelfOptions = {
+type CapacitorNodeSelfOptions = {
   /** Plate width in pixels at zero / full plate-area fraction. */
   minPlateWidth?: number;
   maxPlateWidth?: number;
@@ -48,8 +49,10 @@ type SelfOptions = {
   /** Field arrows drawn in the gap at full charge. */
   maxFieldLines?: number;
   /** Distance from the center to each terminal; the leads stretch to reach it. */
-  terminalHalfWidth?: number;
+  terminalHalfWidth?: number | null;
 };
+
+export type CapacitorNodeOptions = CapacitorNodeSelfOptions;
 
 // Fraction of the plate surface kept clear of charge symbols on each side.
 const CHARGE_MARGIN = 0.14;
@@ -86,18 +89,21 @@ export class CapacitorNode extends CircuitElementNode {
   private chargeMagnitude = 0;
   private topPlatePositive = true;
 
-  public constructor(providedOptions?: SelfOptions) {
-    const options = {
-      minPlateWidth: 40,
-      maxPlateWidth: 76,
-      plateThickness: 7,
-      plateSeparation: 44,
-      depthX: 26,
-      depthY: 15,
-      maxCharges: 16,
-      maxFieldLines: 5,
-      ...providedOptions,
-    };
+  public constructor(providedOptions?: CapacitorNodeOptions) {
+    const options = optionize<CapacitorNodeOptions, CapacitorNodeSelfOptions, EmptySelfOptions>()(
+      {
+        minPlateWidth: 40,
+        maxPlateWidth: 76,
+        plateThickness: 7,
+        plateSeparation: 44,
+        depthX: 26,
+        depthY: 15,
+        maxCharges: 16,
+        maxFieldLines: 5,
+        terminalHalfWidth: null,
+      },
+      providedOptions,
+    );
 
     super();
 

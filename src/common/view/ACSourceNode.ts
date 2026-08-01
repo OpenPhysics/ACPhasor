@@ -13,14 +13,17 @@
 
 import { Dimension2, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { Circle, Node, Path } from "scenerystack/scenery";
 import { MinusNode, PlusNode } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
 
-type SelfOptions = {
+type ACSourceNodeSelfOptions = {
   /** Radius of the source body in pixels. */
   radius?: number;
 };
+
+export type ACSourceNodeOptions = ACSourceNodeSelfOptions;
 
 export class ACSourceNode extends Node {
   /** Distance from the center to each terminal, in pixels. */
@@ -32,11 +35,13 @@ export class ACSourceNode extends Node {
   private readonly bottomPlus: Node;
   private readonly bottomMinus: Node;
 
-  public constructor(providedOptions?: SelfOptions) {
-    const options = {
-      radius: 19,
-      ...providedOptions,
-    };
+  public constructor(providedOptions?: ACSourceNodeOptions) {
+    const options = optionize<ACSourceNodeOptions, ACSourceNodeSelfOptions, EmptySelfOptions>()(
+      {
+        radius: 19,
+      },
+      providedOptions,
+    );
 
     super();
 

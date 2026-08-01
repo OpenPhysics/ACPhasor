@@ -36,6 +36,7 @@
 
 import { DerivedProperty, NumberProperty, type TReadOnlyProperty } from "scenerystack/axon";
 import type { Complex } from "scenerystack/dot";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import {
   CAPACITANCE_DEFAULT_F,
   CAPACITANCE_RANGE_F,
@@ -61,7 +62,7 @@ import { Phasor } from "./Phasor.js";
  * omitted takes the sim-wide default from {@link ACPhasorConstants}; the ranges
  * are always the shared ones, so the controls behave identically everywhere.
  */
-export type RlcCircuitModelOptions = {
+export type RlcCircuitModelSelfOptions = {
   /** Initial resistance (Ω). */
   resistance?: number;
   /** Initial inductance (H). */
@@ -69,6 +70,8 @@ export type RlcCircuitModelOptions = {
   /** Initial capacitance (F). */
   capacitance?: number;
 };
+
+export type RlcCircuitModelOptions = RlcCircuitModelSelfOptions;
 
 export class RlcCircuitModel {
   /** The sinusoidal voltage source driving the series loop. */
@@ -158,12 +161,14 @@ export class RlcCircuitModel {
   public readonly impedancePhasorProperty: TReadOnlyProperty<Phasor>;
 
   public constructor(providedOptions?: RlcCircuitModelOptions) {
-    const options = {
-      resistance: RESISTANCE_DEFAULT_OHMS,
-      inductance: INDUCTANCE_DEFAULT_H,
-      capacitance: CAPACITANCE_DEFAULT_F,
-      ...providedOptions,
-    };
+    const options = optionize<RlcCircuitModelOptions, RlcCircuitModelSelfOptions, EmptySelfOptions>()(
+      {
+        resistance: RESISTANCE_DEFAULT_OHMS,
+        inductance: INDUCTANCE_DEFAULT_H,
+        capacitance: CAPACITANCE_DEFAULT_F,
+      },
+      providedOptions,
+    );
 
     this.resistanceProperty = new NumberProperty(options.resistance, {
       range: RESISTANCE_RANGE_OHMS,

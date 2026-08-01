@@ -23,10 +23,10 @@
  */
 import { DerivedProperty, Multilink } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { HBox, Node, Rectangle, Text, VBox } from "scenerystack/scenery";
 import { ResetAllButton } from "scenerystack/scenery-phet";
-import type { ScreenViewOptions } from "scenerystack/sim";
-import { ScreenView } from "scenerystack/sim";
+import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { RectangularPushButton } from "scenerystack/sun";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import {
@@ -69,6 +69,8 @@ const PHASE_ARC_RADIUS = 0.3;
  */
 const MINIMUM_CURRENT_FULL_SCALE = 0.05;
 
+export type ResonanceScreenViewOptions = ScreenViewOptions;
+
 export class ResonanceScreenView extends ScreenView {
   private readonly model: ResonanceModel;
   private readonly currentCurve: FrequencyResponseNode;
@@ -76,11 +78,14 @@ export class ResonanceScreenView extends ScreenView {
 
   private readonly disposables: { dispose(): void }[] = [];
 
-  public constructor(model: ResonanceModel, options?: ScreenViewOptions) {
-    super({
-      screenSummaryContent: new ResonanceScreenSummaryContent(model),
-      ...options,
-    });
+  public constructor(model: ResonanceModel, providedOptions?: ResonanceScreenViewOptions) {
+    const options = optionize<ResonanceScreenViewOptions, EmptySelfOptions, ScreenViewOptions>()(
+      {
+        screenSummaryContent: new ResonanceScreenSummaryContent(model),
+      },
+      providedOptions,
+    );
+    super(options);
 
     this.model = model;
     const labels = StringManager.getInstance().getLabels();

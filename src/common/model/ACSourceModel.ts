@@ -30,6 +30,7 @@
 
 import { DerivedProperty, NumberProperty, type TReadOnlyProperty } from "scenerystack/axon";
 import type { Range } from "scenerystack/dot";
+import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import {
   AC_AMPLITUDE_DEFAULT_V,
   AC_AMPLITUDE_RANGE_V,
@@ -38,7 +39,7 @@ import {
 } from "../../ACPhasorConstants.js";
 import { Phasor } from "./Phasor.js";
 
-export type ACSourceModelOptions = {
+export type ACSourceModelSelfOptions = {
   /** Initial peak amplitude V₀ in volts. */
   amplitude?: number;
   /** Allowed amplitude range in volts. */
@@ -50,6 +51,8 @@ export type ACSourceModelOptions = {
   /** Fixed reference phase φ in radians (default 0). */
   phase?: number;
 };
+
+export type ACSourceModelOptions = ACSourceModelSelfOptions;
 
 export class ACSourceModel {
   /** Peak amplitude V₀ of the source voltage (V). */
@@ -75,14 +78,16 @@ export class ACSourceModel {
   public readonly voltagePhasorProperty: TReadOnlyProperty<Phasor>;
 
   public constructor(providedOptions?: ACSourceModelOptions) {
-    const options = {
-      amplitude: AC_AMPLITUDE_DEFAULT_V,
-      amplitudeRange: AC_AMPLITUDE_RANGE_V,
-      frequency: AC_FREQUENCY_DEFAULT_HZ,
-      frequencyRange: AC_FREQUENCY_RANGE_HZ,
-      phase: 0,
-      ...providedOptions,
-    };
+    const options = optionize<ACSourceModelOptions, ACSourceModelSelfOptions, EmptySelfOptions>()(
+      {
+        amplitude: AC_AMPLITUDE_DEFAULT_V,
+        amplitudeRange: AC_AMPLITUDE_RANGE_V,
+        frequency: AC_FREQUENCY_DEFAULT_HZ,
+        frequencyRange: AC_FREQUENCY_RANGE_HZ,
+        phase: 0,
+      },
+      providedOptions,
+    );
 
     this.phase = options.phase;
 

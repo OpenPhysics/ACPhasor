@@ -29,12 +29,13 @@
 
 import { NumberProperty, type PhetioProperty, type TReadOnlyProperty } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
+import { combineOptions, optionize } from "scenerystack/phet-core";
 import { StringUtils } from "scenerystack/phetcommon";
 import { NumberControl, type NumberControlOptions, PhetFont } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
 import { FLAT_RECTANGULAR_BUTTON_OPTIONS } from "../SimButtonOptions.js";
 
-export type SimNumberControlOptions = {
+export type SimNumberControlSelfOptions = {
   /** Digits after the decimal point in the readout (default 1). */
   decimalPlaces?: number;
   /**
@@ -45,7 +46,9 @@ export type SimNumberControlOptions = {
    * Requires a strictly positive range.
    */
   logarithmic?: boolean;
-} & NumberControlOptions;
+};
+
+export type SimNumberControlOptions = SimNumberControlSelfOptions & NumberControlOptions;
 
 export class SimNumberControl extends NumberControl {
   /** The log-space Property backing the slider, or null for a linear control. */
@@ -59,7 +62,14 @@ export class SimNumberControl extends NumberControl {
     valuePattern: TReadOnlyProperty<string>,
     providedOptions?: SimNumberControlOptions,
   ) {
-    const { decimalPlaces = 1, logarithmic = false, ...controlOptions } = providedOptions ?? {};
+    const options = optionize<SimNumberControlOptions, SimNumberControlSelfOptions, NumberControlOptions>()(
+      {
+        decimalPlaces: 1,
+        logarithmic: false,
+      },
+      providedOptions,
+    );
+    const { decimalPlaces, logarithmic, ...controlOptions } = options;
 
     const useLog = logarithmic && range.min > 0;
     const sliderRange = useLog ? new Range(Math.log10(range.min), Math.log10(range.max)) : range;
@@ -88,29 +98,36 @@ export class SimNumberControl extends NumberControl {
       sliderProperty = logProperty;
     }
 
-    super(title, sliderProperty, sliderRange, {
-      delta,
-      titleNodeOptions: {
-        font: new PhetFont(14),
-        fill: ACPhasorColors.textColorProperty,
-        maxWidth: 140,
-      },
-      numberDisplayOptions: {
-        ...numberDisplayOptions,
-        textOptions: {
-          font: new PhetFont(14),
-          fill: ACPhasorColors.controlSurfaceTextColorProperty,
+    super(
+      title,
+      sliderProperty,
+      sliderRange,
+      combineOptions<NumberControlOptions>(
+        {
+          delta,
+          titleNodeOptions: {
+            font: new PhetFont(14),
+            fill: ACPhasorColors.textColorProperty,
+            maxWidth: 140,
+          },
+          numberDisplayOptions: {
+            ...numberDisplayOptions,
+            textOptions: {
+              font: new PhetFont(14),
+              fill: ACPhasorColors.controlSurfaceTextColorProperty,
+            },
+            backgroundFill: ACPhasorColors.controlSurfaceColorProperty,
+            backgroundStroke: ACPhasorColors.panelBorderColorProperty,
+          },
+          sliderOptions: {
+            trackFillEnabled: ACPhasorColors.accentColorProperty,
+            thumbFill: ACPhasorColors.accentColorProperty,
+          },
+          arrowButtonOptions: FLAT_RECTANGULAR_BUTTON_OPTIONS,
         },
-        backgroundFill: ACPhasorColors.controlSurfaceColorProperty,
-        backgroundStroke: ACPhasorColors.panelBorderColorProperty,
-      },
-      sliderOptions: {
-        trackFillEnabled: ACPhasorColors.accentColorProperty,
-        thumbFill: ACPhasorColors.accentColorProperty,
-      },
-      arrowButtonOptions: FLAT_RECTANGULAR_BUTTON_OPTIONS,
-      ...controlOptions,
-    });
+        controlOptions,
+      ),
+    );
 
     this.logProperty = logProperty;
     this.detachLogBridge = null;

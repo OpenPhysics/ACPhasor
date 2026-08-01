@@ -29,6 +29,7 @@
 
 import { DerivedProperty, Multilink, Property, type TReadOnlyProperty } from "scenerystack/axon";
 import { Vector2 } from "scenerystack/dot";
+import { optionize } from "scenerystack/phet-core";
 import type { ModelViewTransform2 } from "scenerystack/phetcommon";
 import { Line, Node, RichText, type TColor } from "scenerystack/scenery";
 import { ArrowNode, type ArrowNodeOptions } from "scenerystack/scenery-phet";
@@ -37,7 +38,7 @@ import type { Phasor } from "../model/Phasor.js";
 /** Which axis a projection line drops to, or "none" for no construction line. */
 export type PhasorProjection = "none" | "real" | "imaginary";
 
-type SelfOptions = {
+type PhasorNodeSelfOptions = {
   /** Fill color of the arrow (and its label). */
   fill?: TColor;
   /**
@@ -62,7 +63,9 @@ type SelfOptions = {
   showProjection?: PhasorProjection;
 };
 
-export type PhasorNodeOptions = SelfOptions & Omit<ArrowNodeOptions, "fill" | "stroke">;
+type PhasorNodeArrowOptions = Omit<ArrowNodeOptions, "fill" | "stroke">;
+
+export type PhasorNodeOptions = PhasorNodeSelfOptions & PhasorNodeArrowOptions;
 
 export class PhasorNode extends Node {
   private readonly arrowNode: ArrowNode;
@@ -75,18 +78,20 @@ export class PhasorNode extends Node {
     modelViewTransform: ModelViewTransform2,
     providedOptions?: PhasorNodeOptions,
   ) {
-    const options = {
-      fill: "black" as TColor,
-      labelString: null as string | TReadOnlyProperty<string> | null,
-      labelFont: "bold 16px sans-serif",
-      labelOffset: null as Vector2 | null,
-      tailProperty: null as TReadOnlyProperty<Vector2> | null,
-      showProjection: "none" as PhasorProjection,
-      tailWidth: 3,
-      headWidth: 12,
-      headHeight: 12,
-      ...providedOptions,
-    };
+    const options = optionize<PhasorNodeOptions, PhasorNodeSelfOptions, PhasorNodeArrowOptions>()(
+      {
+        fill: "black" as TColor,
+        labelString: null as string | TReadOnlyProperty<string> | null,
+        labelFont: "bold 16px sans-serif",
+        labelOffset: null as Vector2 | null,
+        tailProperty: null as TReadOnlyProperty<Vector2> | null,
+        showProjection: "none" as PhasorProjection,
+        tailWidth: 3,
+        headWidth: 12,
+        headHeight: 12,
+      },
+      providedOptions,
+    );
 
     super();
 
