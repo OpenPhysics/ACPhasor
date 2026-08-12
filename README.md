@@ -1,5 +1,7 @@
 # AC Phasor
 
+[![CI](https://github.com/OpenPhysics/ACPhasor/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenPhysics/ACPhasor/actions/workflows/ci.yml)
+
 An AC phasor simulation built with [SceneryStack](https://scenerystack.org/),
 Vite 8, TypeScript 7, and Biome 2. Four screens take one series R–L–C loop from a
 single element to the power it consumes.
