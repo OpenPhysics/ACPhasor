@@ -263,7 +263,7 @@ export class SeriesRlcScreenView extends ScreenView {
       }),
       {
         checkboxColor: ACPhasorColors.textColorProperty,
-        checkboxColorBackground: ACPhasorColors.controlSurfaceColorProperty,
+        checkboxColorBackground: ACPhasorColors.panelBackgroundColorProperty,
         accessibleName: a11y.controls.tipToTailStringProperty,
       },
     );
