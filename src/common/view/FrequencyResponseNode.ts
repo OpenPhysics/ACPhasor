@@ -53,7 +53,7 @@ import { type EmptySelfOptions, Orientation, optionize } from "scenerystack/phet
 import { Circle, type Font, Line, Node, Path, type TColor, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
-import { formatTickValue, niceStep } from "./axisScale.js";
+import { applyChartRescale, formatTickValue, niceStep } from "./axisScale.js";
 
 /** Width reserved outside the chart for the vertical tick labels (px). */
 const Y_LABEL_GUTTER = 40;
@@ -376,11 +376,18 @@ export class FrequencyResponseNode extends Node {
 
   /** Re-span the vertical axis and re-space everything read against it. */
   private updateVerticalScale(): void {
-    this.chartTransform.setModelYRange(new Range(this.verticalScale.min, this.verticalScale.max));
+    const newRange = new Range(this.verticalScale.min, this.verticalScale.max);
     const spacing = this.tickSpacing;
-    this.yGridLineSet.setSpacing(spacing);
-    this.yTickMarkSet.setSpacing(spacing);
-    this.yTickLabelSet.setSpacing(spacing);
+    applyChartRescale(
+      this.chartTransform.modelYRange.getLength(),
+      newRange.getLength(),
+      () => this.chartTransform.setModelYRange(newRange),
+      () => {
+        this.yGridLineSet.setSpacing(spacing);
+        this.yTickMarkSet.setSpacing(spacing);
+        this.yTickLabelSet.setSpacing(spacing);
+      },
+    );
     // Labels are cached by value, and the number of decimals just changed.
     this.yTickLabelSet.invalidateTickLabelSet();
   }

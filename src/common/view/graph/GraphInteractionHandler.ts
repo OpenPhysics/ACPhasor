@@ -214,9 +214,7 @@ export default class GraphInteractionHandler {
             const deltaY = dragStartModelPoint.y - currentModelPoint.y;
             const newXRange = new Range(dragStartXRange.min + deltaX, dragStartXRange.max + deltaX);
             const newYRange = new Range(dragStartYRange.min + deltaY, dragStartYRange.max + deltaY);
-            this.chartTransform.setModelXRange(newXRange);
-            this.chartTransform.setModelYRange(newYRange);
-            this.dataManager.updateTickSpacing(newXRange, newYRange);
+            this.dataManager.setAxisRanges(newXRange, newYRange);
             this.dataManager.updateTrail();
           }
         },
@@ -241,9 +239,7 @@ export default class GraphInteractionHandler {
           const deltaY = (listener.modelDelta.y * yRange.getLength()) / viewH;
           const newXRange = new Range(xRange.min + deltaX, xRange.max + deltaX);
           const newYRange = new Range(yRange.min + deltaY, yRange.max + deltaY);
-          this.chartTransform.setModelXRange(newXRange);
-          this.chartTransform.setModelYRange(newYRange);
-          this.dataManager.updateTickSpacing(newXRange, newYRange);
+          this.dataManager.setAxisRanges(newXRange, newYRange);
           this.dataManager.updateTrail();
         },
       },
@@ -320,11 +316,7 @@ export default class GraphInteractionHandler {
             const yMax = initialModelCenter.y + (initialYRange.max - initialModelCenter.y) * zoomFactor;
 
             // Apply the zoom
-            this.chartTransform.setModelXRange(new Range(xMin, xMax));
-            this.chartTransform.setModelYRange(new Range(yMin, yMax));
-
-            // Update tick spacing
-            this.dataManager.updateTickSpacing(this.chartTransform.modelXRange, this.chartTransform.modelYRange);
+            this.dataManager.setAxisRanges(new Range(xMin, xMax), new Range(yMin, yMax));
 
             // Update trail
             this.dataManager.updateTrail();
@@ -415,8 +407,7 @@ export default class GraphInteractionHandler {
 
             const newYRange = new Range(initialYRange.min + modelDeltaY, initialYRange.max + modelDeltaY);
 
-            this.chartTransform.setModelYRange(newYRange);
-            this.dataManager.updateTickSpacing(this.chartTransform.modelXRange, newYRange);
+            this.dataManager.setAxisRanges(this.chartTransform.modelXRange, newYRange);
             this.dataManager.updateTrail();
           } else if (activePointers.size === 2 && initialYDistance && initialYMidpoint !== null && initialYRange) {
             // Two touches - pinch zoom on Y-axis only
@@ -440,8 +431,7 @@ export default class GraphInteractionHandler {
             const yMin = modelMidpointY - (modelMidpointY - initialYRange.min) * zoomFactor;
             const yMax = modelMidpointY + (initialYRange.max - modelMidpointY) * zoomFactor;
 
-            this.chartTransform.setModelYRange(new Range(yMin, yMax));
-            this.dataManager.updateTickSpacing(this.chartTransform.modelXRange, new Range(yMin, yMax));
+            this.dataManager.setAxisRanges(this.chartTransform.modelXRange, new Range(yMin, yMax));
             this.dataManager.updateTrail();
           }
         }
@@ -500,8 +490,7 @@ export default class GraphInteractionHandler {
             mouseDragInitialYRange.max + modelDeltaY,
           );
 
-          this.chartTransform.setModelYRange(newYRange);
-          this.dataManager.updateTickSpacing(this.chartTransform.modelXRange, newYRange);
+          this.dataManager.setAxisRanges(this.chartTransform.modelXRange, newYRange);
           this.dataManager.updateTrail();
         }
       },
@@ -544,8 +533,7 @@ export default class GraphInteractionHandler {
 
         const newYRange = new Range(yMin, yMax);
 
-        this.chartTransform.setModelYRange(newYRange);
-        this.dataManager.updateTickSpacing(this.chartTransform.modelXRange, newYRange);
+        this.dataManager.setAxisRanges(this.chartTransform.modelXRange, newYRange);
         this.dataManager.updateTrail();
         this.dataManager.setManuallyZoomed(true);
       },
@@ -605,8 +593,7 @@ export default class GraphInteractionHandler {
 
             const newXRange = new Range(initialXRange.min + modelDeltaX, initialXRange.max + modelDeltaX);
 
-            this.chartTransform.setModelXRange(newXRange);
-            this.dataManager.updateTickSpacing(newXRange, this.chartTransform.modelYRange);
+            this.dataManager.setAxisRanges(newXRange, this.chartTransform.modelYRange);
             this.dataManager.updateTrail();
           } else if (activePointers.size === 2 && initialXDistance && initialXMidpoint !== null && initialXRange) {
             // Two touches - pinch zoom on X-axis only
@@ -630,8 +617,7 @@ export default class GraphInteractionHandler {
             const xMin = modelMidpointX - (modelMidpointX - initialXRange.min) * zoomFactor;
             const xMax = modelMidpointX + (initialXRange.max - modelMidpointX) * zoomFactor;
 
-            this.chartTransform.setModelXRange(new Range(xMin, xMax));
-            this.dataManager.updateTickSpacing(new Range(xMin, xMax), this.chartTransform.modelYRange);
+            this.dataManager.setAxisRanges(new Range(xMin, xMax), this.chartTransform.modelYRange);
             this.dataManager.updateTrail();
           }
         }
@@ -690,8 +676,7 @@ export default class GraphInteractionHandler {
             mouseDragInitialXRange.max + modelDeltaX,
           );
 
-          this.chartTransform.setModelXRange(newXRange);
-          this.dataManager.updateTickSpacing(newXRange, this.chartTransform.modelYRange);
+          this.dataManager.setAxisRanges(newXRange, this.chartTransform.modelYRange);
           this.dataManager.updateTrail();
         }
       },
@@ -734,8 +719,7 @@ export default class GraphInteractionHandler {
 
         const newXRange = new Range(xMin, xMax);
 
-        this.chartTransform.setModelXRange(newXRange);
-        this.dataManager.updateTickSpacing(newXRange, this.chartTransform.modelYRange);
+        this.dataManager.setAxisRanges(newXRange, this.chartTransform.modelYRange);
         this.dataManager.updateTrail();
         this.dataManager.setManuallyZoomed(true);
       },
@@ -950,12 +934,7 @@ export default class GraphInteractionHandler {
     const newXRange = new Range(xMin, xMax);
     const newYRange = new Range(yMin, yMax);
 
-    // Update chart transform
-    this.chartTransform.setModelXRange(newXRange);
-    this.chartTransform.setModelYRange(newYRange);
-
-    // Update tick spacing
-    this.dataManager.updateTickSpacing(newXRange, newYRange);
+    this.dataManager.setAxisRanges(newXRange, newYRange);
 
     // Update trail with new transform
     this.dataManager.updateTrail();
@@ -1023,12 +1002,7 @@ export default class GraphInteractionHandler {
         break;
     }
 
-    // Update the chart transform
-    this.chartTransform.setModelXRange(newXRange);
-    this.chartTransform.setModelYRange(newYRange);
-
-    // Update tick spacing
-    this.dataManager.updateTickSpacing(newXRange, newYRange);
+    this.dataManager.setAxisRanges(newXRange, newYRange);
 
     // Update trail with new transform
     this.dataManager.updateTrail();

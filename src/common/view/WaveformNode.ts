@@ -78,7 +78,7 @@ import { type EmptySelfOptions, Orientation, optionize } from "scenerystack/phet
 import { Circle, type Font, HBox, Line, Node, Path, type TColor, Text } from "scenerystack/scenery";
 import { PhetFont } from "scenerystack/scenery-phet";
 import ACPhasorColors from "../../ACPhasorColors.js";
-import { formatTickValue, niceStep } from "./axisScale.js";
+import { applyChartRescale, formatTickValue, niceStep } from "./axisScale.js";
 
 /** Width reserved outside the chart for a set of vertical tick labels (px). */
 const Y_LABEL_GUTTER = 34;
@@ -611,11 +611,18 @@ export class WaveformNode extends Node {
 
   /** Re-space one axis's grid, ticks and labels after a full-scale change. */
   private updateVerticalScale(axis: VerticalAxis): void {
-    axis.chartTransform.setModelYRange(new Range(-axis.scale.fullScale, axis.scale.fullScale));
+    const newRange = new Range(-axis.scale.fullScale, axis.scale.fullScale);
     const spacing = axis.scale.fullScale / 2;
-    axis.gridLineSet?.setSpacing(spacing);
-    axis.tickMarkSet.setSpacing(spacing);
-    axis.tickLabelSet.setSpacing(spacing);
+    applyChartRescale(
+      axis.chartTransform.modelYRange.getLength(),
+      newRange.getLength(),
+      () => axis.chartTransform.setModelYRange(newRange),
+      () => {
+        axis.gridLineSet?.setSpacing(spacing);
+        axis.tickMarkSet.setSpacing(spacing);
+        axis.tickLabelSet.setSpacing(spacing);
+      },
+    );
     // Labels are cached by value; the cache must be dropped when the scale (and
     // therefore the number of decimals) changes.
     axis.tickLabelSet.invalidateTickLabelSet();
@@ -710,16 +717,24 @@ export class WaveformNode extends Node {
     // proportionally rather than letting it jump when the span changes.
     const cursorFraction = this.timeWindow > 0 ? this.cursorTime / this.timeWindow : 0;
 
+    const previousWindow = this.timeWindow;
     this.timeWindow = seconds;
     const range = new Range(0, seconds);
-    this.timeAxisTransform.setModelXRange(range);
-    this.leftAxis.chartTransform.setModelXRange(range);
-    this.rightAxis?.chartTransform.setModelXRange(range);
-
     const spacing = this.xTickSpacing;
-    this.xGridLineSet.setSpacing(spacing);
-    this.xTickMarkSet.setSpacing(spacing);
-    this.xTickLabelSet?.setSpacing(spacing);
+    applyChartRescale(
+      previousWindow,
+      seconds,
+      () => {
+        this.timeAxisTransform.setModelXRange(range);
+        this.leftAxis.chartTransform.setModelXRange(range);
+        this.rightAxis?.chartTransform.setModelXRange(range);
+      },
+      () => {
+        this.xGridLineSet.setSpacing(spacing);
+        this.xTickMarkSet.setSpacing(spacing);
+        this.xTickLabelSet?.setSpacing(spacing);
+      },
+    );
     this.xTickLabelSet?.invalidateTickLabelSet();
 
     for (const trace of this.traces) {

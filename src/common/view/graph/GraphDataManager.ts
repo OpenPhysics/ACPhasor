@@ -10,6 +10,7 @@ import { Range, Vector2 } from "scenerystack/dot";
 import { Circle, type Node } from "scenerystack/scenery";
 import ACPhasorColors from "../../../ACPhasorColors.js";
 import ACPhasorNamespace from "../../../ACPhasorNamespace.js";
+import { applyChartRescale } from "../axisScale.js";
 
 // Trail dot appearance: the oldest dot in the trail is small and faint, the
 // newest large and nearly opaque, so the trail reads as a direction of travel.
@@ -153,11 +154,7 @@ export default class GraphDataManager {
 
     // Reset to default ranges
     const defaultRange = new Range(-10, 10);
-    this.chartTransform.setModelXRange(defaultRange);
-    this.chartTransform.setModelYRange(defaultRange);
-
-    // Reset tick spacing
-    this.updateTickSpacing(defaultRange, defaultRange);
+    this.setAxisRanges(defaultRange, defaultRange);
 
     // Clear trail (the dots are pooled — hide them, do not discard them)
     for (const dot of this.trailDots) {
@@ -200,26 +197,52 @@ export default class GraphDataManager {
     const xRange = new Range(xMin - xPadding, xMax + xPadding);
     const yRange = new Range(yMin - yPadding, yMax + yPadding);
 
-    this.chartTransform.setModelXRange(xRange);
-    this.chartTransform.setModelYRange(yRange);
-
-    // Update tick spacing for better readability
-    this.updateTickSpacing(xRange, yRange);
+    this.setAxisRanges(xRange, yRange);
   }
 
   /**
    * Update tick spacing based on the range
    */
   public updateTickSpacing(xRange: Range, yRange: Range): void {
-    // Calculate appropriate tick spacing (aim for ~5 ticks to avoid clutter)
-    const xSpacing = GraphDataManager.calculateTickSpacing(xRange.getLength());
-    const ySpacing = GraphDataManager.calculateTickSpacing(yRange.getLength());
+    this.applyTickSpacing(xRange, yRange);
+  }
 
-    this.verticalGridLineSet.setSpacing(ySpacing);
+  /**
+   * Move both axes to `xRange`/`yRange`, applying tick spacing first when a
+   * span grows so TickLabelSet never fills a large range with a leftover small
+   * step (see {@link applyChartRescale}).
+   */
+  public setAxisRanges(xRange: Range, yRange: Range): void {
+    applyChartRescale(
+      this.chartTransform.modelXRange.getLength(),
+      xRange.getLength(),
+      () => this.chartTransform.setModelXRange(xRange),
+      () => this.applyHorizontalTickSpacing(xRange),
+    );
+    applyChartRescale(
+      this.chartTransform.modelYRange.getLength(),
+      yRange.getLength(),
+      () => this.chartTransform.setModelYRange(yRange),
+      () => this.applyVerticalTickSpacing(yRange),
+    );
+  }
+
+  private applyTickSpacing(xRange: Range, yRange: Range): void {
+    this.applyHorizontalTickSpacing(xRange);
+    this.applyVerticalTickSpacing(yRange);
+  }
+
+  private applyHorizontalTickSpacing(xRange: Range): void {
+    const xSpacing = GraphDataManager.calculateTickSpacing(xRange.getLength());
     this.horizontalGridLineSet.setSpacing(xSpacing);
     this.xTickMarkSet.setSpacing(xSpacing);
-    this.yTickMarkSet.setSpacing(ySpacing);
     this.xTickLabelSet.setSpacing(xSpacing);
+  }
+
+  private applyVerticalTickSpacing(yRange: Range): void {
+    const ySpacing = GraphDataManager.calculateTickSpacing(yRange.getLength());
+    this.verticalGridLineSet.setSpacing(ySpacing);
+    this.yTickMarkSet.setSpacing(ySpacing);
     this.yTickLabelSet.setSpacing(ySpacing);
   }
 

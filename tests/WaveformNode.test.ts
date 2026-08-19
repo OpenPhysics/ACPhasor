@@ -44,6 +44,20 @@ describe("WaveformNode", () => {
     }
   });
 
+  it("survives a decade jump on an auto-scaled axis without overflowing ticks", () => {
+    // Capacitor current on the Intro screen spans ~0.1 A to thousands of amps
+    // when fuzz slams frequency and C together. Bamboo rebuilds ticks on every
+    // range change, so the leftover tiny spacing must not be asked to fill the
+    // new large range.
+    const scope = createDualTraceScope();
+    scope.setTrace(1, 0.001, 2 * Math.PI, 0);
+    const before = scope.bounds.copy();
+    scope.setTrace(1, 5000, 2 * Math.PI, 0);
+    expect(scope.bounds.equals(before)).toBe(true);
+    scope.setTrace(1, 0.001, 2 * Math.PI, 0);
+    expect(scope.bounds.equals(before)).toBe(true);
+  });
+
   it("does not change size when the time window is retuned", () => {
     const scope = createDualTraceScope();
     const before = scope.bounds.copy();

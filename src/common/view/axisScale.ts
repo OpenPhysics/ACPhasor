@@ -28,6 +28,31 @@ export function niceStep(value: number): number {
 }
 
 /**
+ * Apply a new model range and a new tick spacing in the order that never asks
+ * bamboo's TickLabelSet to fill a large range with a leftover small spacing.
+ *
+ * TickLabelSet.update runs on every range or spacing change. Expanding the
+ * range first (a capacitor current jumping from ~0.1 A to thousands of amps)
+ * would generate tens of thousands of labels and overflow the stack. Shrink
+ * the range first when the span falls, so the leftover large spacing simply
+ * produces fewer ticks.
+ */
+export function applyChartRescale(
+  oldSpan: number,
+  newSpan: number,
+  setRange: () => void,
+  setSpacing: () => void,
+): void {
+  if (newSpan >= oldSpan) {
+    setSpacing();
+    setRange();
+  } else {
+    setRange();
+    setSpacing();
+  }
+}
+
+/**
  * Format an axis value with just enough decimals to distinguish neighbouring
  * ticks, trimming trailing zeros so labels stay short ("2.5", "0.05", "10").
  */

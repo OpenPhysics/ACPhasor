@@ -50,6 +50,14 @@ describe("FrequencyResponseNode", () => {
     }
   });
 
+  it("survives a decade jump on the auto-scaled axis without overflowing ticks", () => {
+    const chart = createCurrentChart();
+    chart.setCurve(peakAt(0.16, 5, 0.001));
+    const before = chart.bounds.copy();
+    chart.setCurve(peakAt(0.16, 5, 50));
+    expect(chart.bounds.equals(before)).toBe(true);
+  });
+
   it("does not change size as the marker crosses the range", () => {
     const chart = createCurrentChart();
     chart.setCurve(peakAt(0.16, 5, 0.5));
